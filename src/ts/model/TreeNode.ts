@@ -1,26 +1,38 @@
-﻿import * as d3 from 'd3';
+﻿export class TreeNode {
+  #angle: number;
 
-export class TreeNode {
-  angle: number;
-  level: number;
-  complete: boolean;
+  get angle(): number {
+    return this.#angle;
+  }
 
-  constructor(public handle: string) {}
+  set angle(angle: number) {
+    this.#angle = angle;
 
-  static estimateLifespan(birth: Date, death: Date = undefined): number {
-    const interp = d3.scaleLinear().domain([1775, 2019]).range([38, 82]);
+    this.updateRotation();
+  }
 
-    if (birth !== undefined) {
-      return interp(birth.getUTCFullYear());
-    } else if (death !== undefined) {
-      return interp.domain(
-        interp.domain().map((d, i) => d + interp.range()[i])
-      )(death.getUTCFullYear());
+  element: SVGElement;
+  rotationChildren: Iterable<TreeNode>;
+
+  constructor(public id: string) {}
+
+  updateRotation(): void {
+    if (this.element) {
+      this.element.setAttribute('transform', `rotate(${this.angle - 90})`);
     }
   }
-}
 
-export enum Spouse {
-  Father,
-  Mother,
+  /**
+   * Get all tree nodes that should be rotated if this node is rotated.
+   * (All descendants of ancestors that are not descendants of this node.)
+   * @param families Families to include, and from which to walk the tree.
+   * @param nodes Nodes to include without walking their trees.
+   */
+  getRotationChildren(nodes: Iterable<TreeNode> = [this]): Iterable<TreeNode> {
+    const rotationChildren = new Set<TreeNode>(nodes);
+
+    // TODO: recurse
+
+    return rotationChildren;
+  }
 }

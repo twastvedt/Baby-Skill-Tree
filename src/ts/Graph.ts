@@ -1,15 +1,14 @@
 import * as d3 from 'd3';
+import { D3ZoomEvent } from 'd3-zoom';
 
-import settings from './settings';
+import { settings } from './settings';
 
-import { Data, Link, Tree } from './Data';
+import { Data } from './Data';
 import { TreeNode } from './model/TreeNode';
-import { Person } from './model/Person';
-import moment from 'moment';
-import { Family } from './model/Family';
+import { Skill, SkillSelection } from './model/Skill';
 
 export class Graph {
-  scale: d3.ScaleTime<number, number>;
+  scale: d3.ScaleLinear<number, number>;
   data: Data;
 
   svg: d3.Selection<SVGSVGElement, unknown, HTMLElement, unknown>;
@@ -17,20 +16,21 @@ export class Graph {
 
   main: d3.Selection<SVGGElement, unknown, HTMLElement, unknown>;
 
-  constructor(xmlDoc: Document) {
-    this.data = new Data(xmlDoc);
+  constructor(csv: string) {
+    this.data = new Data(csv);
 
     this.svg = d3.select('body').append('svg:svg');
     this.defs = this.svg.append('defs');
 
-    //combine people and families to make list of all nodes
-    this.data.tree.nodeList = (<TreeNode[]>(
-      d3.values(this.data.tree.people)
-    )).concat(<TreeNode[]>d3.values(this.data.tree.families));
-
     this.scale = d3
-      .scaleTime()
-      .domain(this.data.tree.dateRange)
+      .scaleLinear()
+      .domain([
+        0,
+        Object.values(this.data.tree.skills).reduce(
+          (prev, curr) => Math.max(prev, curr.actualEnd),
+          0
+        ),
+      ])
       .range([settings.layout.width / 2, 0]);
 
     this.setupGraph();
@@ -54,9 +54,8 @@ export class Graph {
         d3
           .zoom()
           .scaleExtent([1, 8])
-          .on('zoom', () => {
-            const e = d3.event as d3.D3ZoomEvent<SVGGElement, unknown>;
-            this.setZoom(e.transform);
+          .on('zoom', (event: D3ZoomEvent<SVGGElement, unknown>) => {
+            this.setZoom(event.transform);
           })
       )
       .append('g');
@@ -73,12 +72,8 @@ export class Graph {
 
     const grid = this.main.append('g').classed('grid', true);
 
-    for (
-      let i = this.scale.invert(Math.max(width, height)).getFullYear();
-      i <= moment().year();
-      i++
-    ) {
-      const r = this.scale(new Date(i, 0, 0));
+    for (let i = 0; i <= this.scale.invert(Math.max(width, height)); i++) {
+      const r = this.scale(i);
 
       const circle = grid
         .append('circle')
@@ -88,8 +83,8 @@ export class Graph {
         .attr('r', r)
         .attr('id', 'level-' + i);
 
-      if (i % 50 == 0) {
-        circle.classed('level-50', true);
+      if (i % 52 == 0) {
+        circle.classed('level-year', true);
 
         grid
           .append('text')
@@ -98,15 +93,13 @@ export class Graph {
           .attr('startOffset', '75%')
           .attr('xlink:href', '#level-' + i)
           .text(i);
-      } else if (i % 10 == 0) {
-        circle.classed('level-10', true);
-      } else {
-        circle.classed('level-1', true);
+      } else if (i % 13 == 0) {
+        circle.classed('level-quarter', true);
       }
     }
 
     ///////////
-    //draw tree
+    // Draw tree
 
     const links = this.main
       .selectAll('.link')
@@ -123,112 +116,70 @@ export class Graph {
 
     const nodes = this.main
       .selectAll<SVGGElement, TreeNode>('.node')
-      .data(this.data.tree.nodeList, (d) => d.handle)
+      .data(this.data.tree.nodeList, (d) => d.id)
       .enter()
       .append('g')
       .attr('class', function (d) {
-        let c = 'node ' + d.constructor.name;
-
-        if (d.constructor.name == 'Person') {
-          const person: Person = <Person>d;
-          c += ' ' + person.gender;
-        }
-        return c;
+        return 'node ' + d.constructor.name;
       })
       .attr('id', function (d) {
-        return d.handle;
+        return d.id;
+      })
+      .each(function (node) {
+        node.element = this;
+        node.rotationChildren = node.getRotationChildren();
       });
 
-    const people: d3.Selection<
-      SVGGElement,
-      Person,
-      SVGGElement,
-      unknown
-    > = this.main.selectAll('.Person');
+    // Drag nodes.
+    d3
+      .drag<SVGElement, TreeNode>()
+      .on(
+        'drag',
+        (event: d3.D3DragEvent<SVGElement, TreeNode, unknown>, dragNode) => {
+          const startAngle =
+            (Math.atan2(event.y - event.dy, event.x - event.dx) * 180)
+            / Math.PI;
 
-    const families: d3.Selection<
-      SVGGElement,
-      Family,
-      SVGGElement,
-      unknown
-    > = this.main.selectAll('.Family');
+          const delta =
+            (Math.atan2(event.y, event.x) * 180) / Math.PI - startAngle;
 
-    d3.arc();
+          for (const child of dragNode.rotationChildren) {
+            child.angle += delta;
+          }
+        }
+      )(nodes);
 
-    const familyArcs = families
-      .append('path')
-      .classed('familyArc mainPath', true)
-      .classed('estimate', (d) => d.marriageIsEstimate)
-      .attr('id', function (d) {
-        return d.handle + '-arc';
-      })
-      .attr('d', (d) => d.arc(this.scale));
+    const people: SkillSelection = this.main.selectAll<SVGGElement, Skill>(
+      '.Skill'
+    );
 
-    // Add text to each family.
-    families
-      .append('text')
-      .classed('name familyName', true)
-      .attr('dy', (d) => (d.angle % 360 < 180 ? 12 : -3))
-      .append('textPath')
-      .classed('textPath', true)
-      .text((d) => d.name)
-      .attr('startOffset', '50%')
-      .attr('xlink:href', (d) => '#' + d.handle + '-arc');
-
-    // Add text to each person.
+    // Add text and events to each person.
     people
       .append('text')
       .classed('name personName', true)
-      .text((d) => d.firstName)
+      .text((d) => d.name)
       .each(function (d) {
         if ((d.angle + 270) % 360 > 180) {
           d3.select(this)
             .attr(
               'transform',
-              `translate(${3 - d.parentOrder * 15}, ${
-                that.scale(d.birth) - 7
-              }) rotate(90)`
+              `translate(3, ${that.scale(d.start) - 7}) rotate(90)`
             )
             .classed('reversed', true);
         } else {
           d3.select(this).attr(
             'transform',
-            `translate(${-3 - (d.parentOrder - 1) * 15}, ${
-              that.scale(d.birth) - 7
-            }) rotate(-90)`
+            `translate(-3, ${that.scale(d.start) - 7}) rotate(-90)`
           );
         }
       });
 
-    // TODO: add person line for people with no parent
-    // people.filter(function (d) { return !d.hasOwnProperty('childOf'); })
-
     people
       .sort((a, b) => a.level - b.level)
       .each(function (d) {
-        if (d.childOf !== undefined) {
-          d3.select(this)
-            .append('line')
-            .classed('link mainPath', true)
-            .attr('x1', 0)
-            .attr('x2', 0)
-            .attr('y1', that.scale(d.childOf.marriage))
-            .attr('y2', that.scale(d.birth));
-        }
-
-        if (d.parentIn !== undefined) {
-          d3.select(this)
-            .append('line')
-            .classed('life mainPath', true)
-            .attr('x1', 0)
-            .attr('x2', 0)
-            .attr('y1', that.scale(d.birth))
-            .attr('y2', that.scale(d.parentIn.marriage));
-        }
-
         const lifeLine = d3.select(this).append('line') as d3.Selection<
           SVGLineElement,
-          Person,
+          Skill,
           SVGElement,
           unknown
         >;
@@ -237,20 +188,10 @@ export class Graph {
           .classed('life', true)
           .attr('x1', 0)
           .attr('x2', 0)
-          .attr('y1', that.scale(d.birth))
-          .attr('y2', that.scale(d.death ? d.death : new Date()));
+          .attr('y1', that.scale(d.start))
+          .attr('y2', that.scale(d.actualEnd));
 
-        if (!d.birthIsEstimate) {
-          d3.select(this)
-            .append('circle')
-            .attr('cx', 0)
-            .attr('cy', that.scale(d.birth))
-            .attr('r', 2)
-            .classed('birth', true);
-        }
-
-        // Rotate into place.
-        d3.select(this).attr('transform', `rotate(${d.angle - 90})`);
+        d.updateRotation();
       });
 
     this.setZoom(d3.zoomIdentity);
@@ -263,5 +204,20 @@ export class Graph {
       .selectAll('text')
       .style('font-size', settings.layout.textSize / transform.k + 'px');
   }
+
+  addLifeGradient(year: number, isBirth: boolean): void {
+    const id = `#radialGradient-${year}-${isBirth}`;
+
+    let gradient = this.svg.select(id);
+
+    if (gradient === undefined) {
+      gradient = this.defs
+        .append('radialGradient')
+        .attr('id', id)
+        .attr('cx', '0')
+        .attr('cy', '0')
+        .attr('y1', '0%')
+        .attr('y2', '100%');
+    }
   }
 }

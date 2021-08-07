@@ -1,5 +1,5 @@
 ﻿/**
- * A small class to hold two dimensional point arrays
+ * A small class to hold two-dimensional point arrays.
  */
 export default class Pt {
   0: number;

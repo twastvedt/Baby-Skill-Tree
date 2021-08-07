@@ -35,16 +35,13 @@ line {
 
 circle.level {
   stroke: #bbb;
+  stroke-width: 0.125px;
 
-  &.level-1 {
-    stroke-width: 0.125px;
-  }
-
-  &.level-10 {
+  &.level-quarter {
     stroke-width: 0.25px;
   }
 
-  &.level-50 {
+  &.level-year {
     stroke-width: 0.5px;
   }
 }

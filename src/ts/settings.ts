@@ -1,11 +1,8 @@
-﻿interface Settings {
-  rootFamilyId: string;
-  dataPath: string;
+﻿export const settings = {
+  dataPath: '/assets/baby-skill-tree.csv',
   layout: {
-    ringSpacing: number;
-    width: number;
-    textSize: number;
-  };
-}
-
-export default require('./settings.json') as Settings;
+    ringSpacing: 75,
+    width: 1000,
+    textSize: 12,
+  },
+};
