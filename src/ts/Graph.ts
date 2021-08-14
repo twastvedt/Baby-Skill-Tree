@@ -8,41 +8,27 @@ import { TreeNode } from './model/TreeNode';
 import { Skill, SkillSelection } from './model/Skill';
 
 export class Graph {
-  scale: d3.ScaleLinear<number, number>;
-  data: Data;
+  data: Data = new Data();
 
   svg: d3.Selection<SVGSVGElement, unknown, HTMLElement, unknown>;
   defs: d3.Selection<SVGDefsElement, unknown, HTMLElement, unknown>;
 
   main: d3.Selection<SVGGElement, unknown, HTMLElement, unknown>;
 
-  constructor(csv: string) {
-    this.data = new Data(csv);
+  constructor() {
+    this.svg = d3.select('svg');
+    this.defs = this.svg.select('defs');
 
-    this.svg = d3.select('body').append('svg:svg');
-    this.defs = this.svg.append('defs');
-
-    this.scale = d3
-      .scaleLinear()
-      .domain([
-        0,
-        Object.values(this.data.tree.skills).reduce(
-          (prev, curr) => Math.max(prev, curr.actualEnd),
-          0
-        ),
-      ])
-      .range([settings.layout.width / 2, 0]);
-
-    this.setupGraph();
+    void this.setupGraph();
   }
 
-  setupGraph(): void {
+  async setupGraph(): Promise<void> {
+    await this.data.parseData(settings.dataPath);
+
     const width = window.innerWidth - 50,
       svgNode: SVGElement = this.svg.node(),
-      height = window.innerHeight - svgNode.getBoundingClientRect().top - 50;
-
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const that = this;
+      height = window.innerHeight - svgNode.getBoundingClientRect().top - 50,
+      scale = this.data.tree.scale;
 
     this.svg.attr('width', width);
     this.svg.attr('height', height);
@@ -53,7 +39,7 @@ export class Graph {
       .call(
         d3
           .zoom()
-          .scaleExtent([1, 8])
+          .scaleExtent([1, 6])
           .on('zoom', (event: D3ZoomEvent<SVGGElement, unknown>) => {
             this.setZoom(event.transform);
           })
@@ -72,8 +58,12 @@ export class Graph {
 
     const grid = this.main.append('g').classed('grid', true);
 
-    for (let i = 0; i <= this.scale.invert(Math.max(width, height)); i++) {
-      const r = this.scale(i);
+    for (
+      let i = 0;
+      i <= scale.invert(Math.max(width, height) / Math.SQRT2);
+      i++
+    ) {
+      const r = scale(i);
 
       const circle = grid
         .append('circle')
@@ -83,7 +73,7 @@ export class Graph {
         .attr('r', r)
         .attr('id', 'level-' + i);
 
-      if (i % 52 == 0) {
+      if (i % 12 == 0) {
         circle.classed('level-year', true);
 
         grid
@@ -93,7 +83,7 @@ export class Graph {
           .attr('startOffset', '75%')
           .attr('xlink:href', '#level-' + i)
           .text(i);
-      } else if (i % 13 == 0) {
+      } else if (i % 3 == 0) {
         circle.classed('level-quarter', true);
       }
     }
@@ -101,7 +91,9 @@ export class Graph {
     ///////////
     // Draw tree
 
-    const links = this.main
+    const drawing = this.main.append('g').attr('filter', 'url(#dropShadow)');
+
+    const links = drawing
       .selectAll('.link')
       .data(this.data.tree.links)
       .enter()
@@ -114,7 +106,7 @@ export class Graph {
         return c;
       });
 
-    const nodes = this.main
+    const nodes = drawing
       .selectAll<SVGGElement, TreeNode>('.node')
       .data(this.data.tree.nodeList, (d) => d.id)
       .enter()
@@ -130,68 +122,112 @@ export class Graph {
         node.rotationChildren = node.getRotationChildren();
       });
 
-    // Drag nodes.
-    d3
-      .drag<SVGElement, TreeNode>()
-      .on(
-        'drag',
-        (event: d3.D3DragEvent<SVGElement, TreeNode, unknown>, dragNode) => {
-          const startAngle =
-            (Math.atan2(event.y - event.dy, event.x - event.dx) * 180)
-            / Math.PI;
-
-          const delta =
-            (Math.atan2(event.y, event.x) * 180) / Math.PI - startAngle;
-
-          for (const child of dragNode.rotationChildren) {
-            child.angle += delta;
-          }
-        }
-      )(nodes);
-
-    const people: SkillSelection = this.main.selectAll<SVGGElement, Skill>(
+    const skills: SkillSelection = drawing.selectAll<SVGGElement, Skill>(
       '.Skill'
     );
 
+    const that = this;
+
+    skills
+      .sort((a, b) => a.level - b.level)
+      .each(function (d) {
+        d.updateRotation();
+
+        const outlineId = `skillOutline-${(
+          Math.round(d.barRanges.total.length * 100) / 100
+        )
+          .toString()
+          .replace('.', '-')}`;
+        const outlineSelector = `#${outlineId}`;
+
+        if (that.defs.selectChild(outlineSelector).empty()) {
+          that.defs
+            .append('rect')
+            .attr('id', outlineId)
+            .classed('skillOutline', true)
+            .attr('x', 0)
+            .attr('y', 0)
+            .attr('width', settings.layout.skillWidth)
+            .attr('height', d.barRanges.total.length);
+        }
+
+        const skillGroup = d3.select(this) as d3.Selection<
+          SVGGElement,
+          Skill,
+          SVGGElement,
+          unknown
+        >;
+
+        skillGroup
+          .append('clipPath')
+          .attr('id', `${d.id}-clip`)
+          .append('use')
+          .attr('href', outlineSelector)
+          .classed('skillBoxBackground', true)
+          .attr('x', -settings.layout.skillWidth / 2)
+          .attr('y', d.barRanges.total.start);
+
+        const clipGroup = skillGroup
+          .append('g')
+          .attr('clip-path', `url(#${d.id}-clip)`);
+
+        clipGroup
+          .append('use')
+          .attr('href', outlineSelector)
+          .classed('skillBoxBackground', true)
+          .attr('x', -settings.layout.skillWidth / 2)
+          .attr('y', d.barRanges.total.start);
+
+        clipGroup
+          .append('rect')
+          .classed('skillBox skillBoxMain', true)
+          .attr('x', -settings.layout.skillWidth / 2)
+          .attr('width', settings.layout.skillWidth)
+          .attr('y', d.barRanges.main.start)
+          .attr('height', d.barRanges.main.length);
+
+        if (d.barRanges.start) {
+          clipGroup
+            .append('rect')
+            .classed('skillBox skillBoxStart', true)
+            .attr('x', -settings.layout.skillWidth / 2)
+            .attr('width', settings.layout.skillWidth)
+            .attr('y', d.barRanges.start.start)
+            .attr('height', d.barRanges.start.length)
+            .attr('mask', 'url(#linearMask)');
+        }
+
+        if (d.barRanges.end) {
+          clipGroup
+            .append('rect')
+            .classed('skillBox skillBoxEnd', true)
+            .attr('x', -settings.layout.skillWidth / 2)
+            .attr('width', settings.layout.skillWidth)
+            .attr('y', d.barRanges.end.start)
+            .attr('height', d.barRanges.end.length)
+            .attr('mask', 'url(#linearMask)');
+        }
+      });
+
     // Add text and events to each person.
-    people
+    skills
       .append('text')
-      .classed('name personName', true)
+      .classed('name', true)
       .text((d) => d.name)
       .each(function (d) {
         if ((d.angle + 270) % 360 > 180) {
           d3.select(this)
             .attr(
               'transform',
-              `translate(3, ${that.scale(d.start) - 7}) rotate(90)`
+              `translate(-2, ${d.barRanges.total.start + 5}) rotate(90)`
             )
             .classed('reversed', true);
         } else {
           d3.select(this).attr(
             'transform',
-            `translate(-3, ${that.scale(d.start) - 7}) rotate(-90)`
+            `translate(2, ${d.barRanges.total.end - 5}) rotate(-90)`
           );
         }
-      });
-
-    people
-      .sort((a, b) => a.level - b.level)
-      .each(function (d) {
-        const lifeLine = d3.select(this).append('line') as d3.Selection<
-          SVGLineElement,
-          Skill,
-          SVGElement,
-          unknown
-        >;
-
-        lifeLine
-          .classed('life', true)
-          .attr('x1', 0)
-          .attr('x2', 0)
-          .attr('y1', that.scale(d.start))
-          .attr('y2', that.scale(d.actualEnd));
-
-        d.updateRotation();
       });
 
     this.setZoom(d3.zoomIdentity);
@@ -203,21 +239,5 @@ export class Graph {
     this.main
       .selectAll('text')
       .style('font-size', settings.layout.textSize / transform.k + 'px');
-  }
-
-  addLifeGradient(year: number, isBirth: boolean): void {
-    const id = `#radialGradient-${year}-${isBirth}`;
-
-    let gradient = this.svg.select(id);
-
-    if (gradient === undefined) {
-      gradient = this.defs
-        .append('radialGradient')
-        .attr('id', id)
-        .attr('cx', '0')
-        .attr('cy', '0')
-        .attr('y1', '0%')
-        .attr('y2', '100%');
-    }
   }
 }

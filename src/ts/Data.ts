@@ -2,6 +2,7 @@
 import { settings } from './settings';
 
 import * as d3 from 'd3';
+import { scalePow } from 'd3-scale';
 import { Skill } from './model/Skill';
 
 declare module 'd3' {
@@ -13,18 +14,16 @@ declare module 'd3' {
 }
 
 export class Data {
-  tree = new Tree();
-
-  constructor(csvFile: string) {
-    void this.parseData(csvFile);
-  }
+  tree: Tree;
 
   async parseData(csvFile: string): Promise<void> {
-    const skills = await d3.csv<Skill, string>(csvFile, d3.autoType);
+    const skills = await d3.csv<Skill, string>(
+      csvFile,
+      (rawRow: d3.DSVRowString<string>, index: number, columns: string[]) =>
+        Object.assign(new Skill(), d3.autoType(rawRow, index, columns))
+    );
 
-    for (const skill of skills) {
-      this.tree.add(skill);
-    }
+    this.tree = new Tree(skills);
 
     this.tree.nodeList = <TreeNode[]>Object.values(this.tree.skills);
   }
@@ -37,23 +36,120 @@ export interface Link {
 }
 
 export class Tree {
+  scale: d3.ScaleContinuousNumeric<number, number>;
   skills: { [id: string]: Skill } = {};
   links: Link[] = [];
-  levels: Skill[][] = [];
   nodeList: TreeNode[] = [];
+  series: Map<string, Skill[]> = new Map<string, Skill[]>();
+  lanes: Map<number, Skill[]> = new Map<number, Skill[]>();
 
-  // Add a skill, optionally to a level of the graph
-  add(skill: Skill): void {
-    this.skills[skill.id] = skill;
+  constructor(skills: Skill[]) {
+    const seriesNames = new Set(skills.map((s) => s.series));
+    const seriesCount = seriesNames.size;
 
-    if (skill.level !== null) {
-      // Make sure the list for this level exists before adding a person to it
-      if (typeof this.levels[skill.level] === 'undefined') {
-        this.levels[skill.level] = [];
+    this.scale = scalePow()
+      .domain([
+        0,
+        skills.reduce((prev, curr) => Math.max(prev, curr.actualEnd), 0),
+      ])
+      .range([settings.layout.centerRadius, settings.layout.width / 2])
+      .exponent(0.5);
+
+    for (const skill of skills) {
+      skill.setRanges(this.scale);
+
+      this.skills[skill.id] = skill;
+
+      let series = this.series.get(skill.series);
+
+      if (!series) {
+        if (!skill.angle) {
+          skill.angle = (360 / seriesCount) * this.series.size;
+        }
+
+        series = [];
+        this.series.set(skill.series, series);
+      } else if (!skill.angle) {
+        skill.angle = series[0].angle;
       }
 
-      this.levels[skill.level].push(skill);
+      this.addToLane(skill);
+
+      series.push(skill);
     }
+
+    this.addLinks();
+  }
+
+  addToLane(skill: Skill): void {
+    // Available lanes, ordered by distance from target.
+    const laneAngles = this.lanesAtRadius(skill.barRanges.total.start).sort(
+      (a, b) => {
+        let aDiff = Math.abs(a - skill.angle);
+        let bDiff = Math.abs(b - skill.angle);
+
+        if (aDiff == bDiff) {
+          return a > b ? a : b;
+        } else {
+          return bDiff < aDiff ? b : a;
+        }
+      }
+    );
+
+    for (const angle of laneAngles) {
+      let lane = this.lanes.get(angle);
+
+      if (!lane) {
+        lane = [];
+        this.lanes.set(angle, lane);
+      }
+
+      if (
+        !lane.length
+        || lane[lane.length - 1].barRanges.total.end
+          + settings.layout.skillMargin
+          <= skill.barRanges.total.start
+      ) {
+        skill.angle = angle;
+        lane.push(skill);
+
+        console.log(`Added ${skill.id} to ${skill.angle}.`);
+        return;
+      }
+    }
+
+    console.warn(`Could not find an open lane for skill: ${skill}.`);
+  }
+
+  closest(needle: number, haystack: number[]) {
+    return haystack.reduce((a, b) => {
+      let aDiff = Math.abs(a - needle);
+      let bDiff = Math.abs(b - needle);
+
+      if (aDiff == bDiff) {
+        return a > b ? a : b;
+      } else {
+        return bDiff < aDiff ? b : a;
+      }
+    });
+  }
+
+  lanesAtRadius(radius: number): number[] {
+    const maxCount = Math.floor(
+      (Math.PI * 2 * radius)
+        / (settings.layout.skillWidth + settings.layout.skillMargin)
+    );
+
+    const ring = Math.max(
+      0,
+      Math.floor(Math.log2(maxCount) - Math.log2(settings.layout.initialCount))
+    );
+
+    const count = settings.layout.initialCount * Math.pow(2, ring);
+
+    return Array(count)
+      .fill(0)
+      .map((v, i) => (i * 360) / count);
   }
 
   addLinks(): void {

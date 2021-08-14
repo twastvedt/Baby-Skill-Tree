@@ -1,6 +1,10 @@
 ﻿export class TreeNode {
   #angle: number;
 
+  id: string;
+  element: SVGElement;
+  rotationChildren: Iterable<TreeNode>;
+
   get angle(): number {
     return this.#angle;
   }
@@ -10,11 +14,6 @@
 
     this.updateRotation();
   }
-
-  element: SVGElement;
-  rotationChildren: Iterable<TreeNode>;
-
-  constructor(public id: string) {}
 
   updateRotation(): void {
     if (this.element) {

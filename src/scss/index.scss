@@ -1,8 +1,13 @@
+@use "sass:color";
+
 $gray: #bbb;
+$background: rgb(29, 44, 95);
+$skillBackground: rgb(235, 205, 37);
 
 svg {
   font-size: 14px;
   border: 1px solid #aaa;
+  background-color: $background;
 }
 
 .label {
@@ -28,13 +33,9 @@ line {
   stroke-width: 2px;
 }
 
-.birth {
-  fill: black;
-  stroke: none;
-}
-
 circle.level {
-  stroke: #bbb;
+  stroke: rgb(255, 255, 255);
+  opacity: 0.5;
   stroke-width: 0.125px;
 
   &.level-quarter {
@@ -44,6 +45,39 @@ circle.level {
   &.level-year {
     stroke-width: 0.5px;
   }
+}
+
+.skillBoxStart,
+.skillBoxEnd {
+  fill: $skillBackground;
+
+  stroke: none;
+}
+
+.skillBoxEnd {
+  transform: rotate(180deg);
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+.skillBoxMain {
+  fill: $skillBackground;
+}
+
+#dropShadow {
+  feFlood {
+    flood-color: color.scale($background, $lightness: 15%, $saturation: 70%);
+  }
+}
+
+.skillBoxBackground {
+  stroke: black;
+  stroke-width: 2px;
+  fill: none;
+}
+
+rect.skillOutline {
+  rx: 4;
 }
 
 button {
@@ -67,10 +101,6 @@ button {
 .overlay {
   fill: none;
   pointer-events: all;
-}
-
-.familyName {
-  text-anchor: middle;
 }
 
 .personName.reversed {

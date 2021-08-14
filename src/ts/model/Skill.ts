@@ -1,6 +1,7 @@
 import Pt from './Pt';
 import { TreeNode } from './TreeNode';
 import { BaseType } from 'd3';
+import { settings } from '../settings';
 
 export type SkillSelection = d3.Selection<
   SVGGElement,
@@ -8,6 +9,12 @@ export type SkillSelection = d3.Selection<
   BaseType,
   unknown
 >;
+
+interface RangeSegment {
+  start: number;
+  length: number;
+  end: number;
+}
 
 export class Skill extends TreeNode {
   parents: Skill[] = [];
@@ -21,13 +28,65 @@ export class Skill extends TreeNode {
   end: number;
   maxEnd: number;
   prerequisites: string;
+  name: string;
+  series: string;
 
-  constructor(id: string, public name: string) {
-    super(id);
-  }
+  barRanges: {
+    start?: RangeSegment;
+    main: RangeSegment;
+    end?: RangeSegment;
+    total: RangeSegment;
+  };
 
   get actualEnd(): number {
     return this.maxEnd ?? this.end ?? this.maxStart ?? this.start;
+  }
+
+  toString() {
+    return `Skill: ${this.name} (${this.id})
+  ${this.series}
+  ${this.start} - ${this.actualEnd}`;
+  }
+
+  makeBarRange(
+    scale: d3.ScaleContinuousNumeric<number, number>,
+    start: number,
+    end: number
+  ): RangeSegment {
+    return {
+      start: scale(start),
+      length: scale(end) - scale(start),
+      end: scale(end),
+    };
+  }
+
+  setRanges(scale: d3.ScaleContinuousNumeric<number, number>): void {
+    let end = this.actualEnd;
+
+    if (scale(end) - scale(this.start) < settings.layout.minSkillLength) {
+      end = scale.invert(scale(this.start) + settings.layout.minSkillLength);
+    }
+
+    this.barRanges = {
+      total: this.makeBarRange(scale, this.start, end),
+      main: this.makeBarRange(
+        scale,
+        this.maxStart ?? this.start,
+        this.maxEnd ? this.end : end
+      ),
+    };
+
+    if (this.maxStart) {
+      this.barRanges.start = this.makeBarRange(
+        scale,
+        this.start,
+        this.maxStart
+      );
+    }
+
+    if (this.maxEnd) {
+      this.barRanges.end = this.makeBarRange(scale, this.end, this.maxEnd);
+    }
   }
 
   // path generator for arcs
