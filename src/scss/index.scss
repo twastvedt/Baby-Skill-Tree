@@ -1,6 +1,7 @@
 @use "sass:color";
 
 $gray: #bbb;
+$grid: rgba(255, 255, 255, 0.3);
 $background: rgb(29, 44, 95);
 $skillBackground: rgb(235, 205, 37);
 
@@ -8,11 +9,27 @@ svg {
   font-size: 14px;
   border: 1px solid #aaa;
   background-color: $background;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .label {
   font-size: 75%;
   text-anchor: middle;
+  fill: $grid;
+}
+
+.name {
+  font-weight: bold;
+  fill: color.scale($skillBackground, $blackness: 50%);
+
+  tspan {
+    alignment-baseline: middle;
+  }
+}
+
+.skillBoxInner {
+  stroke: black;
+  fill: white;
 }
 
 path,
@@ -24,18 +41,12 @@ line {
   stroke-linecap: round;
 }
 
-.link,
-.estimate {
+.link {
   stroke: $gray;
 }
 
-.mainPath {
-  stroke-width: 2px;
-}
-
 circle.level {
-  stroke: rgb(255, 255, 255);
-  opacity: 0.5;
+  stroke: $grid;
   stroke-width: 0.125px;
 
   &.level-quarter {
@@ -43,14 +54,13 @@ circle.level {
   }
 
   &.level-year {
-    stroke-width: 0.5px;
+    stroke-width: 0.75px;
   }
 }
 
 .skillBoxStart,
 .skillBoxEnd {
   fill: $skillBackground;
-
   stroke: none;
 }
 
@@ -67,12 +77,13 @@ circle.level {
 #dropShadow {
   feFlood {
     flood-color: color.scale($background, $lightness: 15%, $saturation: 70%);
+    flood-opacity: 0.8;
   }
 }
 
 .skillBoxBackground {
-  stroke: black;
-  stroke-width: 2px;
+  stroke: color.scale($skillBackground, $blackness: 0%);
+  stroke-width: 0px;
   fill: none;
 }
 
@@ -96,13 +107,4 @@ button {
 
 .buttons {
   margin: 0 0 10px;
-}
-
-.overlay {
-  fill: none;
-  pointer-events: all;
-}
-
-.personName.reversed {
-  text-anchor: end;
 }

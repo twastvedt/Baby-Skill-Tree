@@ -42,16 +42,22 @@ export class Tree {
   nodeList: TreeNode[] = [];
   series: Map<string, Skill[]> = new Map<string, Skill[]>();
   lanes: Map<number, Skill[]> = new Map<number, Skill[]>();
+  skillRange: [number, number];
 
   constructor(skills: Skill[]) {
     const seriesNames = new Set(skills.map((s) => s.series));
     const seriesCount = seriesNames.size;
 
+    this.skillRange = skills.reduce(
+      (prev, curr) => [
+        Math.min(prev[0], curr.start),
+        Math.max(prev[1], curr.actualEnd),
+      ],
+      [skills[0].start, 0]
+    );
+
     this.scale = scalePow()
-      .domain([
-        0,
-        skills.reduce((prev, curr) => Math.max(prev, curr.actualEnd), 0),
-      ])
+      .domain([0, this.skillRange[1]])
       .range([settings.layout.centerRadius, settings.layout.width / 2])
       .exponent(0.5);
 

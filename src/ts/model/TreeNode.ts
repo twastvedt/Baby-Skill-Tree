@@ -17,7 +17,7 @@
 
   updateRotation(): void {
     if (this.element) {
-      this.element.setAttribute('transform', `rotate(${this.angle - 90})`);
+      this.element.setAttribute('transform', `rotate(${this.angle})`);
     }
   }
 

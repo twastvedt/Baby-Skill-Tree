@@ -4,11 +4,17 @@
   layout: {
     minSkillLength: 45,
     centerRadius: 10,
-    ringSpacing: 75,
     width: 1000,
     skillWidth: 20,
     skillMargin: 4,
     initialCount: 4,
-    textSize: 12,
+  },
+  rings: {
+    lastYearly: 24,
+    lastQuarterly: 48,
+  },
+  text: {
+    margin: 4,
+    size: 10,
   },
 };
