@@ -21,7 +21,7 @@
   },
   "scripts": {
     "start": "parcel ./src/index.html",
-    "build": "parcel build ./src/index.html",
+    "build": "parcel build ./src/index.html --public-url ./",
     "prettier": "node ./node_modules/prettier/bin-prettier.js --write ."
   },
   "devDependencies": {
