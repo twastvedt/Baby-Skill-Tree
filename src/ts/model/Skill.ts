@@ -31,6 +31,8 @@ export class Skill extends TreeNode {
   name: string;
   series: string;
 
+  nodeType = 'Skill';
+
   barRanges: {
     start?: RangeSegment;
     main: RangeSegment;

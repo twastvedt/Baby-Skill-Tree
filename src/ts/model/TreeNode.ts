@@ -5,6 +5,8 @@
   element: SVGElement;
   rotationChildren: Iterable<TreeNode>;
 
+  nodeType: string;
+
   get angle(): number {
     return this.#angle;
   }

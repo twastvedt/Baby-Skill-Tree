@@ -111,7 +111,7 @@ export class Graph {
       .enter()
       .append('g')
       .attr('class', function (d) {
-        return 'node ' + d.constructor.name;
+        return 'node ' + d.nodeType;
       })
       .attr('id', function (d) {
         return d.id;
