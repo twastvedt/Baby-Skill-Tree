@@ -2,7 +2,6 @@
   "name": "baby-skill-tree",
   "version": "0.1.0",
   "description": "A D3 graph of an \"average\" baby's developmental milestones.",
-  "main": "index.js",
   "author": "Trygve Wastvedt <trygve.wastvedt@gmail.com>",
   "private": true,
   "license": "MIT",
@@ -19,6 +18,7 @@
   },
   "scripts": {
     "start": "parcel ./src/index.html",
+    "build": "parcel build ./src/index.html",
     "prettier": "node ./node_modules/prettier/bin-prettier.js --write ."
   },
   "devDependencies": {
