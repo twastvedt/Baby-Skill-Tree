@@ -79,7 +79,7 @@ export class Graph {
           grid
             .append('text')
             .classed('label', true)
-            .attr('y', r)
+            .attr('x', r)
             .text(i / 12);
         }
       } else if (i % 3 == 0) {
@@ -146,6 +146,7 @@ export class Graph {
             .classed('skillOutline', true)
             .attr('x', 0)
             .attr('y', 0)
+            .attr('rx', 4)
             .attr('height', settings.layout.skillWidth)
             .attr('width', d.barRanges.total.length);
         }
