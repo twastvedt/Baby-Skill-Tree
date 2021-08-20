@@ -4,7 +4,6 @@ import { D3ZoomEvent } from 'd3-zoom';
 import { settings } from './settings';
 
 import { Data } from './Data';
-import { TreeNode } from './model/TreeNode';
 import { Skill, SkillSelection } from './model/Skill';
 
 export class Graph {
@@ -105,35 +104,25 @@ export class Graph {
         return c;
       });
 
-    const nodes = this.drawing
-      .selectAll<SVGGElement, TreeNode>('.node')
+    const that = this;
+
+    const skills = this.drawing
+      .selectAll<SVGGElement, Skill>('.skill')
       .data(this.data.tree.nodeList, (d) => d.id)
       .enter()
       .append('g')
-      .attr('class', function (d) {
-        return 'node ' + d.nodeType;
-      })
+      .attr('class', 'skill')
       .attr('id', function (d) {
         return d.id;
       })
-      .each(function (node) {
-        node.element = this;
-        node.rotationChildren = node.getRotationChildren();
-      });
-
-    const skills: SkillSelection = this.drawing.selectAll<SVGGElement, Skill>(
-      '.Skill'
-    );
-
-    const that = this;
-
-    skills
       .sort((a, b) => a.level - b.level)
-      .each(function (d) {
-        d.updateRotation();
+      .each(function (skill) {
+        skill.element = this;
+
+        skill.updateRotation();
 
         const outlineId = `skillOutline-${(
-          Math.round(d.barRanges.total.length * 100) / 100
+          Math.round(skill.barRanges.total.length * 100) / 100
         )
           .toString()
           .replace('.', '-')}`;
@@ -148,7 +137,7 @@ export class Graph {
             .attr('y', 0)
             .attr('rx', 4)
             .attr('height', settings.layout.skillWidth)
-            .attr('width', d.barRanges.total.length);
+            .attr('width', skill.barRanges.total.length);
         }
 
         const skillGroup = d3.select(this) as d3.Selection<
@@ -160,62 +149,62 @@ export class Graph {
 
         skillGroup
           .append('clipPath')
-          .attr('id', `${d.id}-clipOuter`)
+          .attr('id', `${skill.id}-clipOuter`)
           .append('use')
           .attr('href', outlineSelector)
           .classed('skillBoxBackground', true)
           .attr('y', -settings.layout.skillWidth / 2)
-          .attr('x', d.barRanges.total.start);
+          .attr('x', skill.barRanges.total.start);
 
         skillGroup
           .append('mask')
-          .attr('id', `${d.id}-maskInner`)
+          .attr('id', `${skill.id}-maskInner`)
           .attr('maskUnits', 'objectBoundingBox')
           .append('use')
           .attr('href', outlineSelector)
           .classed('skillBoxInner', true)
           .attr('y', -settings.layout.skillWidth / 2)
-          .attr('x', d.barRanges.total.start)
+          .attr('x', skill.barRanges.total.start)
           .attr('stroke-width', settings.text.margin * 2);
 
         const clipGroup = skillGroup
           .append('g')
-          .attr('clip-path', `url(#${d.id}-clipOuter)`);
+          .attr('clip-path', `url(#${skill.id}-clipOuter)`);
 
         clipGroup
           .append('rect')
           .classed('skillBox skillBoxMain', true)
           .attr('y', -settings.layout.skillWidth / 2)
           .attr('height', settings.layout.skillWidth)
-          .attr('x', d.barRanges.main.start)
-          .attr('width', d.barRanges.main.length);
+          .attr('x', skill.barRanges.main.start)
+          .attr('width', skill.barRanges.main.length);
 
-        if (d.barRanges.start) {
+        if (skill.barRanges.start) {
           clipGroup
             .append('rect')
             .classed('skillBox skillBoxStart', true)
             .attr('y', -settings.layout.skillWidth / 2)
             .attr('height', settings.layout.skillWidth)
-            .attr('x', d.barRanges.start.start)
-            .attr('width', d.barRanges.start.length)
+            .attr('x', skill.barRanges.start.start)
+            .attr('width', skill.barRanges.start.length)
             .attr('mask', 'url(#linearMask)');
         }
 
-        if (d.barRanges.end) {
+        if (skill.barRanges.end) {
           clipGroup
             .append('rect')
             .classed('skillBox skillBoxEnd', true)
             .attr('y', -settings.layout.skillWidth / 2)
             .attr('height', settings.layout.skillWidth)
-            .attr('x', d.barRanges.end.start)
-            .attr('width', d.barRanges.end.length)
+            .attr('x', skill.barRanges.end.start)
+            .attr('width', skill.barRanges.end.length)
             .attr('mask', 'url(#linearMask)');
         }
 
         const innerGroup = skillGroup
           .append('g')
           .classed('skillInner', true)
-          .attr('mask', `url(#${d.id}-maskInner)`);
+          .attr('mask', `url(#${skill.id}-maskInner)`);
 
         // Add text and events to each person.
         innerGroup
@@ -242,7 +231,7 @@ export class Graph {
           .attr('href', outlineSelector)
           .classed('skillBoxBackground', true)
           .attr('y', -settings.layout.skillWidth / 2)
-          .attr('x', d.barRanges.total.start);
+          .attr('x', skill.barRanges.total.start);
       });
 
     this.svg.call(this.zoom);

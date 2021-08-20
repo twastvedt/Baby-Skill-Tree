@@ -1,5 +1,4 @@
 import Pt from './Pt';
-import { TreeNode } from './TreeNode';
 import { BaseType } from 'd3';
 import { settings } from '../settings';
 
@@ -16,9 +15,11 @@ interface RangeSegment {
   end: number;
 }
 
-export class Skill extends TreeNode {
-  parents: Skill[] = [];
-  children: Skill[] = [];
+export class Skill {
+  #angle: number;
+
+  id: string;
+
   notes: string;
   reference: string;
   level: number;
@@ -31,6 +32,10 @@ export class Skill extends TreeNode {
   name: string;
   series: string;
 
+  element: SVGElement;
+  parents: Skill[] = [];
+  children: Skill[] = [];
+
   nodeType = 'Skill';
 
   barRanges: {
@@ -39,6 +44,16 @@ export class Skill extends TreeNode {
     end?: RangeSegment;
     total: RangeSegment;
   };
+
+  get angle(): number {
+    return this.#angle;
+  }
+
+  set angle(angle: number) {
+    this.#angle = angle;
+
+    this.updateRotation();
+  }
 
   get actualEnd(): number {
     return this.maxEnd ?? this.end ?? this.maxStart ?? this.start;
@@ -88,6 +103,12 @@ export class Skill extends TreeNode {
 
     if (this.maxEnd) {
       this.barRanges.end = this.makeBarRange(scale, this.end, this.maxEnd);
+    }
+  }
+
+  updateRotation(): void {
+    if (this.element) {
+      this.element.setAttribute('transform', `rotate(${this.angle})`);
     }
   }
 

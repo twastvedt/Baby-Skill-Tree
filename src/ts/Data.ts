@@ -1,5 +1,4 @@
-﻿import { TreeNode } from './model/TreeNode';
-import { settings } from './settings';
+﻿import { settings } from './settings';
 
 import * as d3 from 'd3';
 import { scalePow } from 'd3-scale';
@@ -25,13 +24,13 @@ export class Data {
 
     this.tree = new Tree(skills);
 
-    this.tree.nodeList = <TreeNode[]>Object.values(this.tree.skills);
+    this.tree.nodeList = <Skill[]>Object.values(this.tree.skills);
   }
 }
 
 export interface Link {
-  source: TreeNode;
-  target: TreeNode;
+  source: Skill;
+  target: Skill;
   type?: string;
 }
 
@@ -39,7 +38,7 @@ export class Tree {
   scale: d3.ScaleContinuousNumeric<number, number>;
   skills: { [id: string]: Skill } = {};
   links: Link[] = [];
-  nodeList: TreeNode[] = [];
+  nodeList: Skill[] = [];
   series: Map<string, Skill[]> = new Map<string, Skill[]>();
   lanes: Map<number, Skill[]> = new Map<number, Skill[]>();
   skillRange: [number, number];
