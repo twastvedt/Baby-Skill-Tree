@@ -3,7 +3,7 @@ import { D3ZoomEvent } from 'd3-zoom';
 
 import { settings } from './settings';
 
-import { Data } from './Data';
+import { Data } from './model/Data';
 import { Skill, SkillSelection } from './model/Skill';
 
 export class Graph {

@@ -1,8 +1,8 @@
-﻿import { settings } from './settings';
+﻿import { settings } from '../settings';
 
 import * as d3 from 'd3';
 import { scalePow } from 'd3-scale';
-import { Skill } from './model/Skill';
+import { Skill } from './Skill';
 
 declare module 'd3' {
   export function autoType<R extends object, T extends string>(
