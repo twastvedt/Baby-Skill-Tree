@@ -1,6 +1,7 @@
 import Pt from './Pt';
 import { BaseType } from 'd3';
 import { settings } from '../settings';
+import { Link } from './Link';
 
 export type SkillSelection = d3.Selection<
   SVGGElement,
@@ -31,10 +32,11 @@ export class Skill {
   prerequisites: string;
   name: string;
   series: string;
+  icon?: string;
 
   element: SVGElement;
-  parents: Skill[] = [];
-  children: Skill[] = [];
+  parents: Link[] = [];
+  children: Link[] = [];
 
   nodeType = 'Skill';
 

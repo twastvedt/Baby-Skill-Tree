@@ -5,6 +5,7 @@ import { settings } from './settings';
 
 import { Data } from './model/Data';
 import { Skill, SkillSelection } from './model/Skill';
+import Pt from './model/Pt';
 
 export class Graph {
   data: Data = new Data();
@@ -91,20 +92,35 @@ export class Graph {
 
     this.drawing = this.main.append('g').attr('filter', 'url(#dropShadow)');
 
+    const that = this;
+
     const links = this.drawing
       .selectAll('.link')
       .data(this.data.tree.links)
       .enter()
       .append('line')
-      .attr('class', function (d) {
+      .each(function (link) {
+        const start = Pt.fromPolar(
+          link.source.barRanges.total.end,
+          (link.source.angle * Math.PI) / 180
+        );
+        const end = Pt.fromPolar(
+          link.target.barRanges.total.start,
+          (link.target.angle * Math.PI) / 180
+        );
+
+        this.setAttribute('x1', start[0].toString());
+        this.setAttribute('x2', end[0].toString());
+        this.setAttribute('y1', start[1].toString());
+        this.setAttribute('y2', end[1].toString());
+      })
+      .attr('class', function (link) {
         let c = 'link';
-        if (d.hasOwnProperty('type')) {
-          c += ' ' + d.type;
+        if (link.hasOwnProperty('type')) {
+          c += ' ' + link.type;
         }
         return c;
       });
-
-    const that = this;
 
     const skills = this.drawing
       .selectAll<SVGGElement, Skill>('.skill')
@@ -210,17 +226,25 @@ export class Graph {
         innerGroup
           .append('text')
           .classed('name', true)
-          .each(function (d) {
-            if ((d.angle + 90) % 360 > 180) {
+          .each(async function (skill) {
+            if ((skill.angle + 90) % 360 > 180) {
               d3.select(this)
-                .attr('x', -(d.barRanges.total.end - settings.text.margin))
+                .attr('x', -(skill.barRanges.total.end - settings.text.margin))
                 .attr('transform', 'rotate(180)')
                 .classed('reversed', true);
             } else {
               d3.select(this).attr(
                 'x',
-                d.barRanges.total.start + settings.text.margin
+                skill.barRanges.total.start + settings.text.margin
               );
+            }
+
+            if (skill.icon) {
+              const details = settings.icons.get(skill.icon);
+
+              const svg = await d3.text(`icons/${skill.icon}.svg`);
+
+              d3.select(this).append('tspan').html(svg);
             }
           })
           .append('tspan')

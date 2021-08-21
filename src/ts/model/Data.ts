@@ -3,6 +3,7 @@
 import * as d3 from 'd3';
 import { scalePow } from 'd3-scale';
 import { Skill } from './Skill';
+import { Link } from './Link';
 
 declare module 'd3' {
   export function autoType<R extends object, T extends string>(
@@ -26,12 +27,6 @@ export class Data {
 
     this.tree.nodeList = <Skill[]>Object.values(this.tree.skills);
   }
-}
-
-export interface Link {
-  source: Skill;
-  target: Skill;
-  type?: string;
 }
 
 export class Tree {
@@ -162,10 +157,12 @@ export class Tree {
       if (skill.prerequisites) {
         skill.parents = skill.prerequisites
           .split(',')
-          .map((prereq) => this.skills[prereq]);
+          .map((prereq) => ({ source: this.skills[prereq], target: skill }));
 
-        for (const parent of skill.parents) {
-          this.links.push({ source: parent, target: skill });
+        for (const link of skill.parents) {
+          this.links.push(link);
+
+          link.source.children.push(link);
         }
       }
     }

@@ -10,6 +10,10 @@ export default class Pt {
     this[1] = y;
   }
 
+  static fromPolar(r: number, theta: number): Pt {
+    return new Pt(Math.cos(theta) * r, Math.sin(theta) * r);
+  }
+
   rel(origin: Pt): Pt {
     //return point relative to origin
 
