@@ -132,7 +132,7 @@ export class Graph {
         return d.id;
       })
       .sort((a, b) => a.level - b.level)
-      .each(function (skill) {
+      .each(async function (skill) {
         skill.element = this;
 
         skill.updateRotation();
@@ -222,31 +222,51 @@ export class Graph {
           .classed('skillInner', true)
           .attr('mask', `url(#${skill.id}-maskInner)`);
 
-        // Add text and events to each person.
-        innerGroup
+        const innerGroupTransformed = innerGroup.append('g');
+
+        let isMirrored = false;
+
+        const innerHeight =
+          settings.layout.skillWidth - 2 * settings.layout.skillMargin;
+        const innerLength =
+          skill.barRanges.total.length - 2 * settings.layout.skillMargin;
+
+        let innerGroupTransform = '';
+
+        if ((skill.angle + 90) % 360 > 180) {
+          isMirrored = true;
+
+          innerGroupTransform = `rotate(180) translate(${
+            -skill.barRanges.total.end + settings.layout.skillMargin
+          })`;
+
+          innerGroupTransformed.classed('reversed', true);
+        } else {
+          innerGroupTransform = `translate(${
+            skill.barRanges.total.start
+            + settings.layout.skillMargin
+            + (skill.icon ? innerHeight : 0)
+          })`;
+        }
+
+        if (skill.icon) {
+          const details = settings.icons.get(skill.icon);
+
+          const svg = await d3.svg(`icons/${skill.icon}.svg`);
+
+          innerGroupTransformed
+            .append(() => svg.documentElement as any as SVGSVGElement)
+            .attr('y', -innerHeight / 2)
+            .attr('x', isMirrored ? innerLength - innerHeight : -innerHeight)
+            .attr('height', innerHeight)
+            .attr('width', innerHeight);
+        }
+
+        innerGroupTransformed.attr('transform', innerGroupTransform);
+
+        const text = innerGroupTransformed
           .append('text')
           .classed('name', true)
-          .each(async function (skill) {
-            if ((skill.angle + 90) % 360 > 180) {
-              d3.select(this)
-                .attr('x', -(skill.barRanges.total.end - settings.text.margin))
-                .attr('transform', 'rotate(180)')
-                .classed('reversed', true);
-            } else {
-              d3.select(this).attr(
-                'x',
-                skill.barRanges.total.start + settings.text.margin
-              );
-            }
-
-            if (skill.icon) {
-              const details = settings.icons.get(skill.icon);
-
-              const svg = await d3.text(`icons/${skill.icon}.svg`);
-
-              d3.select(this).append('tspan').html(svg);
-            }
-          })
           .append('tspan')
           .text((d) => d.name);
 
