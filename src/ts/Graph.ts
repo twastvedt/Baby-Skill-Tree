@@ -4,7 +4,7 @@ import { D3ZoomEvent } from 'd3-zoom';
 import { settings } from './settings';
 
 import { Data } from './model/Data';
-import { Skill, SkillSelection } from './model/Skill';
+import { Skill } from './model/Skill';
 import Pt from './model/Pt';
 
 export class Graph {
@@ -76,10 +76,13 @@ export class Graph {
         circle.classed('level-year', true);
 
         if (i > 0) {
+          const point = Pt.fromPolar(r + 2, (-5 * Math.PI) / 180);
+
           grid
             .append('text')
             .classed('label', true)
-            .attr('x', r)
+            .attr('x', point[0])
+            .attr('y', point[1])
             .text(i / 12);
         }
       } else if (i % 3 == 0) {
@@ -181,7 +184,7 @@ export class Graph {
           .classed('skillBoxInner', true)
           .attr('y', -settings.layout.skillWidth / 2)
           .attr('x', skill.barRanges.total.start)
-          .attr('stroke-width', settings.text.margin * 2);
+          .attr('stroke-width', settings.layout.skillMargin * 2);
 
         const clipGroup = skillGroup
           .append('g')
@@ -203,7 +206,7 @@ export class Graph {
             .attr('height', settings.layout.skillWidth)
             .attr('x', skill.barRanges.start.start)
             .attr('width', skill.barRanges.start.length)
-            .attr('mask', 'url(#linearMask)');
+            .attr('fill', 'url(#linearGradient)');
         }
 
         if (skill.barRanges.end) {
@@ -214,7 +217,7 @@ export class Graph {
             .attr('height', settings.layout.skillWidth)
             .attr('x', skill.barRanges.end.start)
             .attr('width', skill.barRanges.end.length)
-            .attr('mask', 'url(#linearMask)');
+            .attr('fill', 'url(#linearGradient)');
         }
 
         const innerGroup = skillGroup
@@ -249,13 +252,14 @@ export class Graph {
           })`;
         }
 
-        if (skill.icon) {
-          const details = settings.icons.get(skill.icon);
+        if (skill.iconDetails) {
+          const svg = await d3.text(`icons/${skill.icon}.svg`);
 
-          const svg = await d3.svg(`icons/${skill.icon}.svg`);
+          innerGroupTransformed.html(svg);
 
           innerGroupTransformed
-            .append(() => svg.documentElement as any as SVGSVGElement)
+            .select('svg')
+            .classed('skillIcon', true)
             .attr('y', -innerHeight / 2)
             .attr('x', isMirrored ? innerLength - innerHeight : -innerHeight)
             .attr('height', innerHeight)
@@ -266,6 +270,7 @@ export class Graph {
 
         const text = innerGroupTransformed
           .append('text')
+          .attr('x', settings.layout.skillMargin)
           .classed('name', true)
           .append('tspan')
           .text((d) => d.name);

@@ -58,6 +58,10 @@ export class Tree {
     for (const skill of skills) {
       skill.setRanges(this.scale);
 
+      if (skill.icon) {
+        skill.getIconDetails();
+      }
+
       this.skills[skill.id] = skill;
 
       let series = this.series.get(skill.series);

@@ -2,19 +2,21 @@
 
 $gray: #bbb;
 $grid: rgba(255, 255, 255, 0.3);
-$background: rgb(29, 44, 95);
-$skillBackground: rgb(235, 205, 37);
+$background: rgb(70, 92, 167);
+$skillBackground: rgb(230, 202, 48);
+$text: color.scale($skillBackground, $lightness: -60%);
 
-svg {
+svg.container {
   font-size: 14px;
   border: 1px solid #aaa;
   background-color: $background;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  vector-effect: non-scaling-stroke;
 }
 
 .label {
   font-size: 75%;
-  text-anchor: middle;
+  text-anchor: left;
   fill: $grid;
 }
 
@@ -27,18 +29,13 @@ svg {
   }
 }
 
+.skillInner {
+  mix-blend-mode: multiply;
+}
+
 .skillBoxInner {
   stroke: black;
   fill: white;
-}
-
-path,
-circle,
-line {
-  fill: none;
-  stroke-width: 1px;
-  stroke: black;
-  stroke-linecap: round;
 }
 
 .link {
@@ -48,6 +45,7 @@ line {
 circle.level {
   stroke: $grid;
   stroke-width: 0.125px;
+  fill: none;
 
   &.level-quarter {
     stroke-width: 0.25px;
@@ -58,9 +56,16 @@ circle.level {
   }
 }
 
+.gradientStart {
+  stop-color: color.mix($skillBackground, $background, 20%);
+}
+
+.gradientEnd {
+  stop-color: $skillBackground;
+}
+
 .skillBoxStart,
 .skillBoxEnd {
-  fill: $skillBackground;
   stroke: none;
 }
 
@@ -74,9 +79,13 @@ circle.level {
   fill: $skillBackground;
 }
 
+.skillIcon {
+  fill: $text;
+}
+
 #dropShadow {
   feFlood {
-    flood-color: color.scale($background, $lightness: 15%, $saturation: 70%);
+    flood-color: color.scale($background, $lightness: -30%, $saturation: -30%);
     flood-opacity: 0.8;
   }
 }

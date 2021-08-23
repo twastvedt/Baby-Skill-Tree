@@ -1,14 +1,6 @@
 import Pt from './Pt';
-import { BaseType } from 'd3';
-import { settings } from '../settings';
+import { settings, IconDetails } from '../settings';
 import { Link } from './Link';
-
-export type SkillSelection = d3.Selection<
-  SVGGElement,
-  Skill,
-  BaseType,
-  unknown
->;
 
 interface RangeSegment {
   start: number;
@@ -33,6 +25,8 @@ export class Skill {
   name: string;
   series: string;
   icon?: string;
+
+  iconDetails?: IconDetails;
 
   element: SVGElement;
   parents: Link[] = [];
@@ -59,6 +53,10 @@ export class Skill {
 
   get actualEnd(): number {
     return this.maxEnd ?? this.end ?? this.maxStart ?? this.start;
+  }
+
+  getIconDetails() {
+    this.iconDetails = settings.icons.get(this.icon);
   }
 
   toString() {

@@ -1,7 +1,6 @@
-﻿interface IconDetails {
+﻿export interface IconDetails {
   license: string;
   source: string;
-  author: string;
   notes?: string;
 }
 
@@ -13,7 +12,7 @@ export const settings = {
     centerRadius: 10,
     width: 1000,
     skillWidth: 20,
-    skillMargin: 4,
+    skillMargin: 2,
     initialCount: 4,
   },
   rings: {
@@ -21,7 +20,6 @@ export const settings = {
     lastQuarterly: 48,
   },
   text: {
-    margin: 4,
     size: 10,
   },
   icons: new Map<string, IconDetails>([
@@ -29,17 +27,33 @@ export const settings = {
       'standing',
       {
         license: 'https://creativecommons.org/licenses/by/4.0/',
-        source: 'fontawesome.io',
-        author: 'Dave Gandy',
+        source: '<a href="fontawesome.io">Dave Gandy</a>',
       },
     ],
     [
       'breastFeeding',
       {
-        license: 'https://creativecommons.org/licenses/by/4.0/',
-        source: 'https://github.com/hfg-gmuend/openmoji',
-        author: 'OpenMoji',
+        license: 'Public Domain',
+        source:
+          '<a href="https://thenounproject.com/edward">Edward Boatman from Noun Project</a>',
         notes: 'Removed fill color from original.',
+      },
+    ],
+    [
+      'crawling',
+      {
+        license: 'Creative Commons',
+        source:
+          '<a href="https://thenounproject.com/budhishakti17">Ragal Kartidev from Noun Project</a>',
+      },
+    ],
+    [
+      'smiling',
+      {
+        license:
+          '<a href="https://www.freepikcompany.com/legal?&_ga=2.246028932.1853393565.1629660833-2034462439.1629502450#nav-flaticon">Flaticon</a>',
+        source:
+          '<a href="https://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a>',
       },
     ],
   ]),

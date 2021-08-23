@@ -22,13 +22,14 @@
   },
   "scripts": {
     "copyIcons": "cpx src/icons/* dist/icons --clean",
-    "start": "parcel ./src/index.html & npm run copyIcons -- --watch",
+    "start": "concurrently \"parcel ./src/index.html\" \"npm run copyIcons -- --watch\"",
     "build": "npm run copyIcons && parcel build ./src/index.html --public-url ./",
     "prettier": "node ./node_modules/prettier/bin-prettier.js --write ."
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^4.29.0",
     "@typescript-eslint/parser": "^4.29.0",
+    "concurrently": "^6.2.1",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
     "prettier": "npm:@btmills/prettier@^2.3.1"
