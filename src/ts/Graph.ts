@@ -8,33 +8,20 @@ import { Skill } from './model/Skill';
 import Pt from './model/Pt';
 
 export class Graph {
-  data: Data = new Data();
+  svg: d3.Selection<SVGSVGElement, unknown, null, unknown>;
+  defs: d3.Selection<SVGDefsElement, unknown, null, unknown>;
 
-  svg: d3.Selection<SVGSVGElement, unknown, HTMLElement, unknown>;
-  defs: d3.Selection<SVGDefsElement, unknown, HTMLElement, unknown>;
+  main: d3.Selection<SVGGElement, unknown, null, unknown>;
 
-  main: d3.Selection<SVGGElement, unknown, HTMLElement, unknown>;
-
-  drawing: d3.Selection<SVGGElement, unknown, HTMLElement, unknown>;
+  drawing: d3.Selection<SVGGElement, unknown, null, unknown>;
 
   zoom: d3.ZoomBehavior<Element, unknown>;
 
-  constructor() {
-    this.svg = d3.select('svg');
+  constructor(private data: Data, svg: SVGSVGElement) {
+    this.svg = d3.select(svg);
     this.defs = this.svg.select('defs');
-
-    void this.setupGraph();
-  }
-
-  async setupGraph(): Promise<void> {
-    await this.data.parseData(settings.dataPath);
-
-    const width = window.innerWidth - 50,
-      svgNode: SVGElement = this.svg.node(),
-      height = window.innerHeight - svgNode.getBoundingClientRect().top - 50,
-      scale = this.data.tree.scale;
-
-    this.svg.attr('viewBox', [0, 0, width, height].toString());
+    this.main = this.svg.append('g');
+    this.drawing = this.main.append('g');
 
     this.zoom = d3
       .zoom()
@@ -43,7 +30,23 @@ export class Graph {
         this.setZoom(event.transform);
       });
 
-    this.main = this.svg.append('g');
+    void this.setupGraph();
+  }
+
+  async setupGraph(): Promise<void> {
+    const width = window.innerWidth - 50,
+      svgNode = this.svg.node();
+
+    if (!svgNode) {
+      throw new Error('SVG not found');
+    }
+
+    const height =
+      window.innerHeight - svgNode.getBoundingClientRect().top - 50;
+
+    const scale = this.data.tree.scale;
+
+    this.svg.attr('viewBox', [0, 0, width, height].toString());
 
     //////////////////////
     // Grid background
@@ -93,7 +96,7 @@ export class Graph {
     ///////////
     // Draw tree
 
-    this.drawing = this.main.append('g').attr('filter', 'url(#dropShadow)');
+    this.drawing.attr('filter', 'url(#dropShadow)');
 
     const that = this;
 
@@ -134,7 +137,6 @@ export class Graph {
       .attr('id', function (d) {
         return d.id;
       })
-      .sort((a, b) => a.level - b.level)
       .each(async function (skill) {
         skill.element = this;
 
@@ -159,12 +161,7 @@ export class Graph {
             .attr('width', skill.barRanges.total.length);
         }
 
-        const skillGroup = d3.select(this) as d3.Selection<
-          SVGGElement,
-          Skill,
-          SVGGElement,
-          unknown
-        >;
+        const skillGroup = d3.select<SVGGElement, Skill>(this);
 
         skillGroup
           .append('clipPath')
@@ -283,7 +280,7 @@ export class Graph {
           .attr('x', skill.barRanges.total.start);
       });
 
-    this.svg.call(this.zoom);
+    this.svg.call(this.zoom as any);
 
     this.zoomFit(0.85);
   }
@@ -297,9 +294,13 @@ export class Graph {
   }
 
   zoomFit(paddingPercent = 0.75): void {
-    var bounds = this.drawing.node().getBBox();
-    var fullWidth = this.svg.node().clientWidth,
-      fullHeight = this.svg.node().clientHeight;
+    var bounds = this.drawing.node()?.getBBox();
+    var fullWidth = this.svg.node()?.clientWidth,
+      fullHeight = this.svg.node()?.clientHeight;
+
+    if (!bounds || !fullWidth || !fullHeight) {
+      throw new Error('Nodes not found.');
+    }
 
     var width = bounds.width,
       height = bounds.height;
@@ -319,7 +320,7 @@ export class Graph {
       .transition()
       .duration(750)
       .call(
-        this.zoom.transform,
+        this.zoom.transform as any,
         d3.zoomIdentity
           .translate(fullWidth / 2, fullHeight / 2)
           .scale(scale)

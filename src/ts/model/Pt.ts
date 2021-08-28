@@ -50,6 +50,10 @@ export default class Pt {
     const offset = doc.getBoundingClientRect(),
       matrix = elem.getScreenCTM();
 
+    if (!matrix) {
+      throw new Error('Could not get matrix.');
+    }
+
     return new Pt(
       this[0] / matrix.a + this[1] / matrix.c - matrix.e + offset.left,
       this[0] / matrix.b + this[1] / matrix.d - matrix.f + offset.top
@@ -61,6 +65,10 @@ export default class Pt {
 
     const offset = doc.getBoundingClientRect(),
       matrix = elem.getScreenCTM();
+
+    if (!matrix) {
+      throw new Error('Could not get matrix.');
+    }
 
     return new Pt(
       matrix.a * this[0] + matrix.c * this[1] + matrix.e - offset.left,

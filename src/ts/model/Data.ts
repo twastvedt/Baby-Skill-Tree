@@ -14,7 +14,7 @@ declare module 'd3' {
 }
 
 export class Data {
-  tree: Tree;
+  tree!: Tree;
 
   async parseData(csvFile: string): Promise<void> {
     const skills = await d3.csv<Skill, string>(

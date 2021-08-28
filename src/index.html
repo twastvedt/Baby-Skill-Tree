@@ -4,52 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Baby Skill Tree</title>
-    <!-- <link rel="stylesheet" href="./scss/index.scss" /> -->
   </head>
 
   <body>
-    <h1>Baby Skill Tree</h1>
-
-    <svg class="container">
-      <defs>
-        <filter id="dropShadow" x="-30%" y="-30%" width="160%" height="160%">
-          <feColorMatrix
-            type="matrix"
-            in="SourceAlpha"
-            values="1 0 0 0 0 
-                    0 1 0 0 0 
-                    0 0 1 0 0 
-                    0 0 0 100 0"
-            result="boostedInput"
-          />
-          <feGaussianBlur
-            in="boostedInput"
-            stdDeviation="1"
-            result="blur"
-          ></feGaussianBlur>
-          <feOffset in="blur" dx="4" dy="4" result="offsetBlur"></feOffset>
-          <feFlood flood-opacity="0.8" result="offsetColor"></feFlood>
-          <feComposite
-            in="offsetColor"
-            in2="offsetBlur"
-            operator="in"
-            result="blurResult"
-          ></feComposite>
-          <feMerge result="sourceAndBlur">
-            <feMergeNode in="blurResult" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-        <linearGradient id="linearGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0" class="gradientStart"></stop>
-          <stop offset="1" class="gradientEnd"></stop>
-        </linearGradient>
-        <mask id="linearMask" maskContentUnits="objectBoundingBox">
-          <rect x="0" y="0" width="1" height="1" fill="url(#linearGradient)" />
-        </mask>
-      </defs>
-    </svg>
-
+    <div id="app"></div>
     <script src="./index.ts" type="module"></script>
   </body>
 </html>

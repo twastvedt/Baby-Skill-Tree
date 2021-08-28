@@ -1,8 +1,5 @@
-import { Graph } from './ts/Graph';
-import { settings } from './ts/settings';
+import { createApp } from 'vue';
+import App from './App';
 
-import './scss/index.scss';
-
-(async () => {
-  let graph = new Graph();
-})();
+const app = createApp(App);
+app.mount('#app');

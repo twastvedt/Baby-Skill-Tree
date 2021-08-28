@@ -9,32 +9,31 @@ interface RangeSegment {
 }
 
 export class Skill {
-  #angle: number;
+  #angle = 0;
 
-  id: string;
+  id!: string;
 
-  notes: string;
-  reference: string;
-  level: number;
-  complete: boolean;
-  start: number;
-  maxStart: number;
-  end: number;
-  maxEnd: number;
-  prerequisites: string;
-  name: string;
-  series: string;
+  notes?: string;
+  reference?: string;
+  complete?: boolean;
+  start!: number;
+  maxStart?: number;
+  end?: number;
+  maxEnd?: number;
+  prerequisites?: string;
+  name!: string;
+  series!: string;
   icon?: string;
 
   iconDetails?: IconDetails;
 
-  element: SVGElement;
+  element?: SVGElement;
   parents: Link[] = [];
   children: Link[] = [];
 
   nodeType = 'Skill';
 
-  barRanges: {
+  barRanges!: {
     start?: RangeSegment;
     main: RangeSegment;
     end?: RangeSegment;
@@ -56,7 +55,9 @@ export class Skill {
   }
 
   getIconDetails() {
-    this.iconDetails = settings.icons.get(this.icon);
+    if (this.icon) {
+      this.iconDetails = settings.icons.get(this.icon);
+    }
   }
 
   toString() {
@@ -89,7 +90,7 @@ export class Skill {
       main: this.makeBarRange(
         scale,
         this.maxStart ?? this.start,
-        this.maxEnd ? this.end : end
+        this.maxEnd ? this.end ?? end : end
       ),
     };
 
@@ -101,7 +102,7 @@ export class Skill {
       );
     }
 
-    if (this.maxEnd) {
+    if (this.maxEnd && this.end) {
       this.barRanges.end = this.makeBarRange(scale, this.end, this.maxEnd);
     }
   }
