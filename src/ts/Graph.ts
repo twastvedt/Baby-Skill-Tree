@@ -13,6 +13,7 @@ export class Graph {
 
   main: d3.Selection<SVGGElement, unknown, null, unknown>;
 
+  grid: d3.Selection<SVGGElement, unknown, null, unknown>;
   drawing: d3.Selection<SVGGElement, unknown, null, unknown>;
 
   zoom: d3.ZoomBehavior<Element, unknown>;
@@ -21,6 +22,7 @@ export class Graph {
     this.svg = d3.select(svg);
     this.defs = this.svg.select('defs');
     this.main = this.svg.append('g');
+    this.grid = this.main.append('g');
     this.drawing = this.main.append('g');
 
     this.zoom = d3
@@ -51,7 +53,7 @@ export class Graph {
     //////////////////////
     // Grid background
 
-    const grid = this.main.append('g').classed('grid', true);
+    this.grid.classed('grid', true);
 
     for (
       let i = 0;
@@ -67,7 +69,7 @@ export class Graph {
 
       const r = scale(i);
 
-      const circle = grid
+      const circle = this.grid
         .append('circle')
         .classed('level', true)
         .attr('cx', 0)
@@ -81,7 +83,7 @@ export class Graph {
         if (i > 0) {
           const point = Pt.fromPolar(r + 2, (-5 * Math.PI) / 180);
 
-          grid
+          this.grid
             .append('text')
             .classed('label', true)
             .attr('x', point[0])
@@ -133,7 +135,7 @@ export class Graph {
       .data(this.data.tree.nodeList, (d) => d.id)
       .enter()
       .append('g')
-      .attr('class', 'skill')
+      .classed('skill', true)
       .attr('id', function (d) {
         return d.id;
       })
