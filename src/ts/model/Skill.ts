@@ -9,7 +9,7 @@ interface RangeSegment {
 }
 
 export class Skill {
-  #angle = 0;
+  angle = 0;
 
   id!: string;
 
@@ -27,7 +27,6 @@ export class Skill {
 
   iconDetails?: IconDetails;
 
-  element?: SVGElement;
   parents: Link[] = [];
   children: Link[] = [];
 
@@ -40,18 +39,16 @@ export class Skill {
     total: RangeSegment;
   };
 
-  get angle(): number {
-    return this.#angle;
-  }
-
-  set angle(angle: number) {
-    this.#angle = angle;
-
-    this.updateRotation();
-  }
-
   get actualEnd(): number {
     return this.maxEnd ?? this.end ?? this.maxStart ?? this.start;
+  }
+
+  get roundedLength(): number {
+    return Math.round(this.barRanges.total.length * 100) / 100;
+  }
+
+  get reversed(): boolean {
+    return (this.angle + 90) % 360 > 180;
   }
 
   getIconDetails() {
@@ -104,12 +101,6 @@ export class Skill {
 
     if (this.maxEnd && this.end) {
       this.barRanges.end = this.makeBarRange(scale, this.end, this.maxEnd);
-    }
-  }
-
-  updateRotation(): void {
-    if (this.element) {
-      this.element.setAttribute('transform', `rotate(${this.angle})`);
     }
   }
 

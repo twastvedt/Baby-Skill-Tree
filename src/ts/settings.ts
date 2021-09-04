@@ -16,7 +16,7 @@ export const settings = {
     initialCount: 4,
   },
   rings: {
-    lastYearly: 24,
+    lastMonthly: 24,
     lastQuarterly: 48,
   },
   text: {
