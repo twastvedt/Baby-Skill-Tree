@@ -3,9 +3,10 @@ import App from './App.vue';
 import { Data } from './ts/model/Data';
 import { settings } from './ts/settings';
 
-const data = new Data();
+(async () => {
+  const data = new Data();
 
-await data.parseData(settings.dataPath);
+  await data.parseData(settings.dataPath);
 
-const app = createApp(App, { data });
-app.mount('#app');
+  createApp(App, { data }).mount('#app');
+})();

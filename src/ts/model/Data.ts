@@ -6,7 +6,7 @@ import { Skill } from './Skill';
 import { Link } from './Link';
 
 declare module 'd3' {
-  export function autoType<R extends object, T extends string>(
+  export function autoType<R extends Record<string, unknown>, T extends string>(
     rawRow: d3.DSVRowString<T>,
     index: number,
     columns: T[]
@@ -89,8 +89,8 @@ export class Tree {
     // Available lanes, ordered by distance from target.
     const laneAngles = this.lanesAtRadius(skill.barRanges.total.start).sort(
       (a, b) => {
-        let aDiff = Math.abs(a - skill.angle);
-        let bDiff = Math.abs(b - skill.angle);
+        const aDiff = Math.abs(a - skill.angle);
+        const bDiff = Math.abs(b - skill.angle);
 
         if (aDiff == bDiff) {
           return a > b ? a : b;
@@ -125,10 +125,10 @@ export class Tree {
     console.warn(`Could not find an open lane for skill: ${skill}.`);
   }
 
-  closest(needle: number, haystack: number[]) {
+  closest(needle: number, haystack: number[]): number {
     return haystack.reduce((a, b) => {
-      let aDiff = Math.abs(a - needle);
-      let bDiff = Math.abs(b - needle);
+      const aDiff = Math.abs(a - needle);
+      const bDiff = Math.abs(b - needle);
 
       if (aDiff == bDiff) {
         return a > b ? a : b;

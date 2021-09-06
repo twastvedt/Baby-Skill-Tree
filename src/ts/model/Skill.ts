@@ -51,13 +51,13 @@ export class Skill {
     return (this.angle + 90) % 360 > 180;
   }
 
-  getIconDetails() {
+  getIconDetails(): void {
     if (this.icon) {
       this.iconDetails = settings.icons.get(this.icon);
     }
   }
 
-  toString() {
+  toString(): string {
     return `Skill: ${this.name} (${this.id})
   ${this.series}
   ${this.start} - ${this.actualEnd}`;

@@ -49,6 +49,7 @@
         </mask>
         <rect
           v-for="length of skillLengths"
+          :key="length"
           :id="skillOutlineId(length)"
           class="skillOutline"
           rx="4"
@@ -56,10 +57,11 @@
           :width="length"
         ></rect>
       </defs>
-      <g class="main">
+      <g class="main" ref="mainGroup">
         <g class="grid">
           <circle
             v-for="i of gridLevels"
+            :key="i"
             :class="{
               level: true,
               'level-year': !(i % 12),
@@ -69,20 +71,27 @@
             :id="`level-${i}`"
           />
           <g transform="rotate(-5)">
-            <text v-for="i of maxYear" class="label" :x="scale(i * 12) + 2">
+            <text
+              v-for="i of maxYear"
+              :key="i"
+              class="label"
+              :x="scale(i * 12) + 2"
+            >
               {{ i }}
             </text>
           </g>
         </g>
-        <g class="drawing" filter="url(#dropShadow)">
+        <g class="drawing" ref="drawingGroup" filter="url(#dropShadow)">
           <line
             v-for="link of data.tree.links"
+            :key="`${link.source.id}-${link.target.id}`"
             :class="['link', link.type]"
             v-bind="linkLine(link)"
           />
 
           <g
             v-for="skill of data.tree.skills"
+            :key="skill.id"
             class="skill"
             :id="skill.id"
             :transform="`rotate(${skill.angle})`"
@@ -141,10 +150,10 @@
               :mask="`url(#${skill.id}-maskInner)`"
             >
               <g :transform="innerTransform(skill)">
-                <SvgIcon
+                <component
                   v-if="skill.iconDetails"
                   class="skillIcon"
-                  :name="skill.icon"
+                  :is="icon"
                   v-bind="iconAttributes(skill)"
                 />
 
@@ -167,6 +176,7 @@
     <div class="sidebar">
       <p
         v-for="skill of data.tree.skills"
+        :key="skill.id"
         @click="select(skill.id)"
         :class="{ selected: skill.id === selection }"
       >
@@ -177,26 +187,44 @@
 </template>
 <script lang="ts">
 import { defineComponent, PropType, ref } from 'vue';
-import { Graph } from './ts/Graph';
 import { Data } from './ts/model/Data';
 import { Link } from './ts/model/Link';
 import Pt from './ts/model/Pt';
 import { Skill } from './ts/model/Skill';
 import { settings } from './ts/settings';
 import * as d3 from 'd3';
-import SvgIcon from './SvgIcon.vue';
+import { D3ZoomEvent, select } from 'd3';
 
 export default defineComponent({
-  components: {
-    SvgIcon,
-  },
+  components: {},
   setup(props) {
     const graphSvg = ref<SVGSVGElement>();
 
+    const mainGroup = ref<SVGGElement>();
+    const drawingGroup = ref<SVGGElement>();
+
+    function setZoom(transform: d3.ZoomTransform): void {
+      mainGroup.value?.setAttribute('transform', transform.toString());
+
+      mainGroup.value
+        ?.querySelectorAll('text')
+        .forEach(
+          (el) => (el.style.fontSize = settings.text.size / transform.k + 'px')
+        );
+    }
+
     return {
       graphSvg,
+      mainGroup,
+      drawingGroup,
       scale: props.data.tree.scale,
       settings,
+      zoom: d3
+        .zoom()
+        .scaleExtent([1, 6])
+        .on('zoom', (event: D3ZoomEvent<SVGGElement, unknown>) => {
+          setZoom(event.transform);
+        }),
     };
   },
   props: {
@@ -212,10 +240,10 @@ export default defineComponent({
   },
   computed: {
     width() {
-      return this.graphSvg?.clientWidth;
+      return this.graphSvg?.clientWidth ?? 0;
     },
     height() {
-      return this.graphSvg?.clientHeight;
+      return this.graphSvg?.clientHeight ?? 0;
     },
     gridLevels() {
       return Array(
@@ -241,10 +269,16 @@ export default defineComponent({
         Object.values(this.data.tree.skills).map((s) => s.roundedLength)
       );
     },
+
+    icon() {
+      return () => import(`@/icons/standing.svg`);
+    },
   },
   async mounted() {
     if (this.graphSvg) {
-      let graph = new Graph(this.data, this.graphSvg);
+      select(this.graphSvg).call(this.zoom as any);
+
+      this.zoomFit(0.85);
     }
   },
   methods: {
@@ -309,6 +343,46 @@ export default defineComponent({
         height: innerHeight,
         width: innerHeight,
       };
+    },
+    dynamicIcon(skill: Skill) {
+      return () => import(`@/icons/${skill.icon}.svg`);
+    },
+
+    zoomFit(paddingPercent = 0.75): void {
+      const bounds = this.drawingGroup?.getBBox();
+      const fullWidth = this.graphSvg?.clientWidth,
+        fullHeight = this.graphSvg?.clientHeight;
+
+      if (!bounds || !fullWidth || !fullHeight) {
+        throw new Error('Nodes not found.');
+      }
+
+      const width = bounds.width,
+        height = bounds.height;
+
+      const midX = bounds.x + width / 2,
+        midY = bounds.y + height / 2;
+
+      if (width == 0 || height == 0) return; // nothing to fit
+
+      const scale =
+        paddingPercent / Math.max(width / fullWidth, height / fullHeight);
+      const translate: [number, number] = [-midX, -midY];
+
+      console.debug('zoomFit', translate, scale);
+
+      if (this.graphSvg) {
+        select(this.graphSvg)
+          .transition()
+          .duration(750)
+          .call(
+            this.zoom.transform as any,
+            d3.zoomIdentity
+              .translate(fullWidth / 2, fullHeight / 2)
+              .scale(scale)
+              .translate(...translate)
+          );
+      }
     },
   },
 });

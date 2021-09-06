@@ -1,37 +1,52 @@
 {
   "name": "baby-skill-tree",
   "version": "0.1.0",
-  "description": "A D3 graph of an \"average\" baby's developmental milestones.",
-  "author": "Trygve Wastvedt <trygve.wastvedt@gmail.com>",
   "private": true,
-  "license": "MIT",
+  "description": "A D3 graph of an \"average\" baby's developmental milestones.",
+  "author": {
+    "name": "Trygve Wastvedt",
+    "email": "trygve.wastvedt@gmail.com"
+  },
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint",
+    "prettier": "node ./node_modules/prettier/bin-prettier.js --write ."
+  },
   "dependencies": {
     "@types/d3": "^7.0.0",
     "@types/d3-scale": "^4.0.1",
     "@types/d3-zoom": "^3.0.1",
     "@types/node": "^16.7.4",
+    "core-js": "^3.6.5",
     "d3": "7.x",
     "d3-dsv": "^3.0.1",
     "d3-scale": "^4.0.0",
     "d3-zoom": "^3.0.0",
     "sass": "^1.38.2",
     "typescript": "^4.4.2",
-    "vite-svg-loader": "^2.2.0",
     "vue": "^3.2.4"
-  },
-  "scripts": {
-    "start": "vite",
-    "build": "npm run copyIcons && parcel build ./src/index.html --public-url ./",
-    "prettier": "node ./node_modules/prettier/bin-prettier.js --write ."
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^4.29.3",
     "@typescript-eslint/parser": "^4.29.3",
-    "@vitejs/plugin-vue": "^1.6.0",
+    "@vue/cli-plugin-babel": "~4.5.0",
+    "@vue/cli-plugin-eslint": "~4.5.0",
+    "@vue/cli-plugin-typescript": "~4.5.0",
+    "@vue/cli-service": "~4.5.0",
     "@vue/compiler-sfc": "^3.2.6",
+    "@vue/eslint-config-prettier": "^6.0.0",
+    "@vue/eslint-config-typescript": "^7.0.0",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^3.3.1",
+    "eslint-plugin-vue": "^7.0.0",
     "prettier": "npm:@btmills/prettier@^2.3.1",
-    "vite": "^2.5.1"
-  }
+    "sass": "^1.26.5",
+    "sass-loader": "^8.0.2",
+    "typescript": "~4.1.5"
+  },
+  "_id": "baby-skill-tree@0.1.0",
+  "license": "MIT",
+  "readme": "ERROR: No README data found!"
 }
