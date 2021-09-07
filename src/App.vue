@@ -150,10 +150,10 @@
               :mask="`url(#${skill.id}-maskInner)`"
             >
               <g :transform="innerTransform(skill)">
-                <component
-                  v-if="skill.iconDetails"
+                <SvgIcon
+                  v-if="skill.icon && skill.iconDetails"
                   class="skillIcon"
-                  :is="icon"
+                  :icon="skill.icon"
                   v-bind="iconAttributes(skill)"
                 />
 
@@ -194,9 +194,10 @@ import { Skill } from './ts/model/Skill';
 import { settings } from './ts/settings';
 import * as d3 from 'd3';
 import { D3ZoomEvent, select } from 'd3';
+import SvgIcon from './components/SvgIcon.vue';
 
 export default defineComponent({
-  components: {},
+  components: { SvgIcon },
   setup(props) {
     const graphSvg = ref<SVGSVGElement>();
 
@@ -222,9 +223,9 @@ export default defineComponent({
       zoom: d3
         .zoom()
         .scaleExtent([1, 6])
-        .on('zoom', (event: D3ZoomEvent<SVGGElement, unknown>) => {
+        .on('zoom', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
           setZoom(event.transform);
-        }),
+        }) as unknown as d3.ZoomBehavior<SVGSVGElement, unknown>,
     };
   },
   props: {
@@ -269,14 +270,10 @@ export default defineComponent({
         Object.values(this.data.tree.skills).map((s) => s.roundedLength)
       );
     },
-
-    icon() {
-      return () => import(`@/icons/standing.svg`);
-    },
   },
   async mounted() {
     if (this.graphSvg) {
-      select(this.graphSvg).call(this.zoom as any);
+      select(this.graphSvg).call(this.zoom);
 
       this.zoomFit(0.85);
     }
@@ -344,10 +341,6 @@ export default defineComponent({
         width: innerHeight,
       };
     },
-    dynamicIcon(skill: Skill) {
-      return () => import(`@/icons/${skill.icon}.svg`);
-    },
-
     zoomFit(paddingPercent = 0.75): void {
       const bounds = this.drawingGroup?.getBBox();
       const fullWidth = this.graphSvg?.clientWidth,
@@ -376,7 +369,7 @@ export default defineComponent({
           .transition()
           .duration(750)
           .call(
-            this.zoom.transform as any,
+            this.zoom.transform,
             d3.zoomIdentity
               .translate(fullWidth / 2, fullHeight / 2)
               .scale(scale)

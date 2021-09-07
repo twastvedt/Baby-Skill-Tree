@@ -1,19 +1,29 @@
 <template>
-  <component :is="currentIcon" />
+  <component :is="dynamicIcon" />
 </template>
-<script>
-import { defineAsyncComponent } from 'vue';
-export default {
+
+<script lang="ts">
+import { DefineComponent, defineAsyncComponent, defineComponent } from 'vue';
+
+export default defineComponent({
+  name: 'DynamicIcon',
   props: {
-    name: {
+    icon: {
       type: String,
-      default: undefined,
+      required: true,
     },
   },
   computed: {
-    currentIcon() {
-      return defineAsyncComponent(() => import(`../icons/${this.name}.svg`));
+    dynamicIcon() {
+      return defineAsyncComponent(
+        (): Promise<DefineComponent> =>
+          import(
+            /* webpackChunkName: "icons" */
+            /* webpackMode: "lazy-once" */
+            `@/icons/${this.icon}.svg`
+          )
+      );
     },
   },
-};
+});
 </script>
