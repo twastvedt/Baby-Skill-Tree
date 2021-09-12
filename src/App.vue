@@ -56,8 +56,38 @@
           :height="settings.layout.skillWidth"
           :width="length"
         ></rect>
+
+        <filter id="flannel" x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.2"
+            result="noise"
+            numOctaves="4"
+          />
+
+          <feDiffuseLighting in="noise" lighting-color="white" surfaceScale="2">
+            <feDistantLight azimuth="45" elevation="60" />
+          </feDiffuseLighting>
+          <feComposite
+            in="SourceGraphic"
+            in2="noise"
+            operator="arithmetic"
+            k1="0.1"
+            k2="0.9"
+            k3="0"
+            k4="0"
+          />
+        </filter>
       </defs>
       <g class="main" ref="mainGroup">
+        <rect
+          :x="-drawingRadius"
+          :y="-drawingRadius"
+          :width="2 * drawingRadius"
+          :height="2 * drawingRadius"
+          class="background"
+          filter="url(#flannel)"
+        ></rect>
         <g class="grid">
           <circle
             v-for="i of gridLevels"
@@ -174,14 +204,20 @@
       </g>
     </svg>
     <div class="sidebar">
-      <p
+      <div
         v-for="skill of data.tree.skills"
         :key="skill.id"
         @click="select(skill.id)"
-        :class="{ selected: skill.id === selection }"
+        :class="{ selected: skill.id === selection, skillInfo: true }"
       >
-        {{ skill.name }}
-      </p>
+        <h3 class="name">
+          {{ skill.name }}
+        </h3>
+        <div class="details">
+          <p class="notes">{{ skill.notes }}</p>
+          <p class="reference">{{ skill.reference }}</p>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -246,14 +282,11 @@ export default defineComponent({
     height() {
       return this.graphSvg?.clientHeight ?? 0;
     },
+    drawingRadius() {
+      return this.scale(this.data.tree.skillRange[1]) * Math.SQRT2;
+    },
     gridLevels() {
-      return Array(
-        Math.floor(
-          this.scale.invert(
-            this.scale(this.data.tree.skillRange[1]) * Math.SQRT2
-          )
-        )
-      )
+      return Array(Math.floor(this.scale.invert(this.drawingRadius)))
         .fill(0)
         .map((_, i) => i)
         .filter(
@@ -400,9 +433,12 @@ body {
 #container {
   height: 100vh;
   display: flex;
-  background-color: $background;
   overflow: hidden;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+rect.background {
+  fill: $background;
 }
 
 svg.graph {
@@ -418,6 +454,16 @@ svg.graph {
   padding: 8px;
   border-left: 1px solid $uiLine;
   box-shadow: 0 0 6px 6px $shadow;
+
+  p {
+    cursor: pointer;
+    padding: 8px 8px;
+    margin: 0;
+
+    &:hover {
+      background-color: rgba($color: #000000, $alpha: 0.1);
+    }
+  }
 
   .selected {
     font-weight: bold;
