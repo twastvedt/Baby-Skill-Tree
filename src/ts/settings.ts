@@ -14,6 +14,7 @@ export const settings = {
     skillWidth: 20,
     skillMargin: 2,
     initialCount: 4,
+    linkTangent: 20,
   },
   rings: {
     lastMonthly: 24,
@@ -23,8 +24,9 @@ export const settings = {
     [
       'standing',
       {
-        license: 'https://creativecommons.org/licenses/by/4.0/',
-        source: '<a href="fontawesome.io">Dave Gandy</a>',
+        license:
+          '<a href="https://creativecommons.org/licenses/by/4.0/">CC 4.0</a>',
+        source: '<a href="https://fontawesome.com">Dave Gandy</a>',
       },
     ],
     [

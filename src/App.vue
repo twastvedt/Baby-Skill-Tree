@@ -150,11 +150,12 @@
           </g>
         </g>
         <g class="drawing" ref="drawingGroup" filter="url(#dropShadow)">
-          <line
+          <path
             v-for="link of data.tree.links"
             :key="`${link.source.id}-${link.target.id}`"
+            :id="`#${link.source.id}-${link.target.id}`"
             :class="['link', link.type]"
-            v-bind="linkLine(link)"
+            :d="smoothLinkPath(link)"
           />
 
           <g
@@ -307,15 +308,7 @@
           {{ skill.name }}
         </h3>
       </div>
-      <div class="details" v-else>
-        <h3>
-          {{ selection.name }}
-        </h3>
-        <p class="notes">{{ selection.notes }}</p>
-        <p class="reference">
-          <a :href="selection.reference">{{ selection.reference }}</a>
-        </p>
-      </div>
+      <SkillDetails :skill="selection" v-else />
     </div>
   </div>
 </template>
@@ -329,9 +322,10 @@ import { settings } from './ts/settings';
 import * as d3 from 'd3';
 import { D3ZoomEvent, select } from 'd3';
 import SvgIcon from './components/SvgIcon.vue';
+import SkillDetails from './components/SkillDetails.vue';
 
 export default defineComponent({
-  components: { SvgIcon },
+  components: { SvgIcon, SkillDetails },
   setup(props) {
     const graphSvg = ref<SVGSVGElement>();
 
@@ -436,53 +430,7 @@ export default defineComponent({
   },
   methods: {
     tooltipTitle(skill: Skill) {
-      let title = `${skill.name}: `;
-
-      if (skill.actualEnd !== skill.start) {
-        const start = this.formatTime(skill.start);
-        const end = this.formatTime(skill.actualEnd);
-
-        if (start.unit !== end.unit) {
-          title += `${start.format} - ${end.format}`;
-        } else {
-          title += `${start.number} - ${end.number} ${start.unit}${this.plural(
-            end.number
-          )}`;
-        }
-      } else {
-        title += this.formatTime(skill.start).format;
-      }
-
-      return title;
-    },
-    formatTime(time: number) {
-      const result = {
-        number: time,
-        unit: 'month' as string | undefined,
-      };
-
-      if (time % 12 === 0) {
-        result.number = time / 12;
-        result.unit = 'year';
-      }
-
-      if (time == 0) {
-        result.unit = undefined;
-
-        return { ...result, format: 'birth' };
-      }
-
-      return {
-        ...result,
-        format: `${result.number} ${result.unit}${this.plural(result.number)}`,
-      };
-    },
-    plural(num: number) {
-      if (num === 1) {
-        return '';
-      } else {
-        return 's';
-      }
+      return `${skill.name}: ${skill.rangeString()}`;
     },
     select(skill: Skill | undefined, event: Event): void {
       if (skill?.id === this.selection?.id) {
@@ -498,23 +446,6 @@ export default defineComponent({
         );
 
       event.stopPropagation();
-    },
-    linkLine(link: Link) {
-      const start = Pt.fromPolar(
-        link.source.barRanges.total.end,
-        (link.source.angle * Math.PI) / 180
-      );
-      const end = Pt.fromPolar(
-        link.target.barRanges.total.start,
-        (link.target.angle * Math.PI) / 180
-      );
-
-      return {
-        x1: start[0],
-        x2: end[0],
-        y1: start[1],
-        y2: end[1],
-      };
     },
     skillOutlineId(length: number): string {
       return `skillOutline-${length.toString().replace('.', '-')}`;
@@ -537,6 +468,30 @@ export default defineComponent({
         height: this.innerHeight,
         width: this.innerHeight,
       };
+    },
+    smoothLinkPath(link: Link): string {
+      const start = link.source;
+      const end = link.target;
+
+      const pt1 = Pt.fromPolar(
+        start.barRanges.total.end,
+        (start.angle * Math.PI) / 180
+      );
+      const pt2 = Pt.fromPolar(
+        start.barRanges.total.end + this.settings.layout.linkTangent,
+        (start.angle * Math.PI) / 180
+      );
+
+      const pt3 = Pt.fromPolar(
+        end.barRanges.total.start - this.settings.layout.linkTangent,
+        (end.angle * Math.PI) / 180
+      );
+      const pt4 = Pt.fromPolar(
+        end.barRanges.total.start,
+        (end.angle * Math.PI) / 180
+      );
+
+      return `M ${pt1} C ${pt2} ${pt3} ${pt4}`;
     },
     zoomFit(animate = true, paddingPercent = 0.85): void {
       const bounds = this.drawingGroup?.getBBox();
@@ -587,22 +542,9 @@ export default defineComponent({
   },
 });
 </script>
-<style lang="scss">
+<style lang="scss" scoped>
 @use "sass:color";
-
-$gray: #bbb;
-$grid: rgba(255, 255, 255, 0.3);
-$background: rgb(70, 92, 167);
-$skillBackground: rgb(209, 183, 38);
-$text: color.scale($skillBackground, $lightness: -60%);
-$shadow: color.scale($background, $lightness: -30%, $saturation: -30%);
-
-$uiBackground: rgb(247, 245, 234);
-$uiLine: color.scale($uiBackground, $lightness: -60%);
-
-body {
-  margin: 0;
-}
+@import './scss/colors';
 
 #container {
   height: 100vh;
@@ -637,17 +579,12 @@ svg.graph {
       background-color: rgba($color: #000000, $alpha: 0.1);
     }
   }
-
-  .details {
-    a {
-      color: $uiLine;
-      font-size: 10px;
-    }
-  }
 }
 
 .link {
   stroke: $gray;
+  stroke-width: 1.5;
+  fill: none;
 }
 
 circle.level {
@@ -691,7 +628,8 @@ circle.level {
 }
 
 .skillSelected {
-  .skill:not(.selected) {
+  .skill:not(.selected),
+  .link {
     filter: url(#darken);
   }
 }

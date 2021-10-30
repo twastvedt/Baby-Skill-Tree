@@ -64,6 +64,62 @@ export class Skill {
   ${this.start} - ${this.actualEnd}`;
   }
 
+  rangeString(): string {
+    if (this.actualEnd !== this.start) {
+      const start = Skill.formatTime(this.start);
+      const end = Skill.formatTime(this.actualEnd);
+
+      let text = '';
+
+      if (start.unit !== end.unit) {
+        text += `${start.format} - ${end.format}`;
+      } else {
+        text += `${start.number} - ${end.number} ${start.unit}${Skill.plural(
+          end.number
+        )}`;
+      }
+
+      return text;
+    } else {
+      return Skill.formatTime(this.start).format;
+    }
+  }
+
+  static formatTime(time: number): {
+    number: number;
+    unit?: string;
+    format: string;
+  } {
+    const result = {
+      number: time,
+      unit: 'month' as string | undefined,
+    };
+
+    if (time % 12 === 0) {
+      result.number = time / 12;
+      result.unit = 'year';
+    }
+
+    if (time == 0) {
+      result.unit = undefined;
+
+      return { ...result, format: 'birth' };
+    }
+
+    return {
+      ...result,
+      format: `${result.number} ${result.unit}${this.plural(result.number)}`,
+    };
+  }
+
+  static plural(num: number): string {
+    if (num === 1) {
+      return '';
+    } else {
+      return 's';
+    }
+  }
+
   makeBarRange(
     scale: d3.ScaleContinuousNumeric<number, number>,
     start: number,

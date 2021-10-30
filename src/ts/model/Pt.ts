@@ -10,6 +10,10 @@ export default class Pt {
     this[1] = y;
   }
 
+  /**
+   * Create a point from polar coordinates
+   * @param theta radians
+   */
   static fromPolar(r: number, theta: number): Pt {
     return new Pt(Math.cos(theta) * r, Math.sin(theta) * r);
   }

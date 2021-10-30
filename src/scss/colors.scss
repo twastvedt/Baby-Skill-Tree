@@ -1,0 +1,11 @@
+@use "sass:color";
+
+$gray: #bbb;
+$grid: rgba(255, 255, 255, 0.3);
+$background: rgb(70, 92, 167);
+$skillBackground: rgb(209, 183, 38);
+$text: color.scale($skillBackground, $lightness: -60%);
+$shadow: color.scale($background, $lightness: -30%, $saturation: -30%);
+
+$uiBackground: rgb(247, 245, 234);
+$uiLine: color.scale($uiBackground, $lightness: -60%);
