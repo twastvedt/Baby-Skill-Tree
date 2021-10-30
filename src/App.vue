@@ -57,6 +57,18 @@
           :width="length"
         ></rect>
 
+        <rect
+          v-for="length of skillLengths"
+          :key="length"
+          :id="`${skillOutlineId(length)}-icon`"
+          class="skillOutline"
+          rx="0.5"
+          :height="settings.layout.skillWidth"
+          :width="
+            length - settings.layout.skillWidth + settings.layout.skillMargin
+          "
+        ></rect>
+
         <pattern
           id="fabricPattern"
           patternUnits="userSpaceOnUse"
@@ -216,8 +228,15 @@
             >
               <mask :id="`${skill.id}-maskInner`" maskUnits="objectBoundingBox">
                 <use
-                  :href="`#${skillOutlineId(skill.roundedLength)}`"
+                  :href="`#${skillOutlineId(skill.roundedLength)}${
+                    skill.icon ? '-icon' : ''
+                  }`"
                   class="skillBoxInner"
+                  :x="
+                    skill.icon && !skill.reversed
+                      ? settings.layout.skillWidth - settings.layout.skillMargin
+                      : 0
+                  "
                   :y="-settings.layout.skillWidth / 2"
                   :stroke-width="settings.layout.skillMargin * 2"
                 />
@@ -233,11 +252,14 @@
               <g :mask="`url(#${skill.id}-maskInner)`">
                 <text
                   :x="
-                    settings.layout.skillMargin + (skill.icon ? innerHeight : 0)
+                    settings.layout.skillMargin
+                    + (skill.icon && !skill.reversed
+                      ? innerHeight + settings.layout.skillMargin
+                      : 3)
                   "
                   class="name"
                 >
-                  <tspan>{{ skill.name }}</tspan>
+                  {{ skill.name }}
                 </text>
               </g>
             </g>
@@ -502,26 +524,21 @@ export default defineComponent({
     },
     innerTransform(skill: Skill): string {
       if (skill.reversed) {
-        return `rotate(180) translate(${
-          -skill.barRanges.total.end + settings.layout.skillMargin
-        })`;
+        return `rotate(180) translate(${-skill.barRanges.total.end})`;
       } else {
-        return `translate(${
-          skill.barRanges.total.start + settings.layout.skillMargin
-        })`;
+        return `translate(${skill.barRanges.total.start})`;
       }
     },
     iconAttributes(skill: Skill) {
-      const innerHeight =
-        settings.layout.skillWidth - 2 * settings.layout.skillMargin;
-      const innerLength =
-        skill.barRanges.total.length - 2 * settings.layout.skillMargin;
-
       return {
-        y: -innerHeight / 2,
-        x: skill.reversed ? innerLength - innerHeight : 0,
-        height: innerHeight,
-        width: innerHeight,
+        y: -this.innerHeight / 2,
+        x: skill.reversed
+          ? skill.barRanges.total.length
+            - settings.layout.skillMargin
+            - this.innerHeight
+          : settings.layout.skillMargin,
+        height: this.innerHeight,
+        width: this.innerHeight,
       };
     },
     zoomFit(animate = true, paddingPercent = 0.85): void {
@@ -663,10 +680,7 @@ circle.level {
   .name {
     font-weight: bold;
     font-size: 8px;
-
-    tspan {
-      alignment-baseline: middle;
-    }
+    dominant-baseline: middle;
   }
 }
 
