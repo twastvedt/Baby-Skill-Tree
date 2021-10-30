@@ -14,10 +14,10 @@
           />
           <feGaussianBlur
             in="boostedInput"
-            stdDeviation="1"
+            stdDeviation="0.7"
             result="blur"
           ></feGaussianBlur>
-          <feOffset in="blur" dx="4" dy="4" result="offsetBlur"></feOffset>
+          <feOffset in="blur" dx="1" dy="1" result="offsetBlur"></feOffset>
           <feFlood flood-opacity="0.8" result="offsetColor"></feFlood>
           <feComposite
             in="offsetColor"
@@ -52,41 +52,67 @@
           :key="length"
           :id="skillOutlineId(length)"
           class="skillOutline"
-          rx="4"
+          rx="0.5"
           :height="settings.layout.skillWidth"
           :width="length"
         ></rect>
 
-        <filter id="flannel" x="0%" y="0%" width="100%" height="100%">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.2"
-            result="noise"
-            numOctaves="4"
-          />
+        <pattern
+          id="fabricPattern"
+          patternUnits="userSpaceOnUse"
+          width="200"
+          height="200"
+        >
+          <image href="fabric.jpg" width="200" height="200" />
+        </pattern>
 
-          <feDiffuseLighting in="noise" lighting-color="white" surfaceScale="2">
-            <feDistantLight azimuth="45" elevation="60" />
-          </feDiffuseLighting>
+        <filter id="colorizeBackground">
+          <feFlood result="color"></feFlood>
+
           <feComposite
             in="SourceGraphic"
-            in2="noise"
+            in2="color"
             operator="arithmetic"
-            k1="0.1"
-            k2="0.9"
-            k3="0"
+            k1="0"
+            k2="0.5"
+            k3="1"
             k4="0"
           />
         </filter>
+
+        <pattern
+          id="ridges"
+          patternUnits="userSpaceOnUse"
+          width="2"
+          height="10"
+          patternTransform="scale(1 1)"
+        >
+          <line x1="1" x2="1" y1="0" y2="10" stroke-width="1" stroke="black" />
+        </pattern>
+
+        <filter id="reflectionBlur">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="7"></feGaussianBlur>
+        </filter>
+
+        <pattern
+          id="reflections"
+          patternUnits="userSpaceOnUse"
+          width="10"
+          height="10"
+          patternTransform="rotate(30) scale(7)"
+        >
+          <line x1="5" x2="5" y1="0" y2="10" stroke-width="5" stroke="white" />
+        </pattern>
       </defs>
-      <g class="main" ref="mainGroup">
+      <g class="main" ref="mainGroup" @click="select(undefined, $event)">
         <rect
-          :x="-drawingRadius"
-          :y="-drawingRadius"
-          :width="2 * drawingRadius"
-          :height="2 * drawingRadius"
+          :x="-maxCircleRadius"
+          :y="-maxCircleRadius"
+          :width="2 * maxCircleRadius"
+          :height="2 * maxCircleRadius"
           class="background"
-          filter="url(#flannel)"
+          fill="url(#fabricPattern)"
+          filter="url(#colorizeBackground)"
         ></rect>
         <g class="grid">
           <circle
@@ -123,43 +149,52 @@
             v-for="skill of data.tree.skills"
             :key="skill.id"
             class="skill"
+            @click="select(skill, $event)"
             :id="skill.id"
             :transform="`rotate(${skill.angle})`"
+            :clip-path="`url(#${skill.id}-clipOuter)`"
           >
+            <title>{{ tooltipTitle(skill) }}</title>
             <clipPath :id="`${skill.id}-clipOuter`">
+              <use
+                :href="`#${skillOutlineId(skill.roundedLength)}`"
+                :x="skill.barRanges.total.start"
+                :y="-settings.layout.skillWidth / 2"
+              />
+            </clipPath>
+
+            <g>
               <use
                 :href="`#${skillOutlineId(skill.roundedLength)}`"
                 class="skillBoxBackground"
                 :x="skill.barRanges.total.start"
                 :y="-settings.layout.skillWidth / 2"
               />
-            </clipPath>
 
-            <mask :id="`${skill.id}-maskInner`" maskUnits="objectBoundingBox">
-              <use
-                :href="`#${skillOutlineId(skill.roundedLength)}`"
-                class="skillBoxInner"
-                :x="skill.barRanges.total.start"
-                :y="-settings.layout.skillWidth / 2"
-                :stroke-width="settings.layout.skillMargin * 2"
-              />
-            </mask>
-
-            <g :clip-path="`url(#${skill.id}-clipOuter)`">
               <rect
+                v-if="skill.barRanges.main"
                 class="skillBox skillBoxMain"
                 :x="skill.barRanges.main.start"
-                :y="-settings.layout.skillWidth / 2"
                 :width="skill.barRanges.main.length"
+                :y="-settings.layout.skillWidth / 2"
                 :height="settings.layout.skillWidth"
+              />
+
+              <line
+                v-if="!skill.barRanges.start && !skill.barRanges.end"
+                class="skillLine"
+                :x1="skill.barRanges.total.start"
+                :x2="skill.barRanges.total.start"
+                :y1="-settings.layout.skillWidth / 2"
+                :y2="settings.layout.skillWidth / 2"
               />
 
               <rect
                 v-if="skill.barRanges.start"
                 class="skillBox skillBoxStart"
                 :x="skill.barRanges.start.start"
-                :y="-settings.layout.skillWidth / 2"
                 :width="skill.barRanges.start.length"
+                :y="-settings.layout.skillWidth / 2"
                 :height="settings.layout.skillWidth"
                 fill="url(#linearGradient)"
               />
@@ -168,26 +203,40 @@
                 v-if="skill.barRanges.end"
                 class="skillBox skillBoxEnd"
                 :x="skill.barRanges.end.start"
-                :y="-settings.layout.skillWidth / 2"
                 :width="skill.barRanges.end.length"
+                :y="-settings.layout.skillWidth / 2"
                 :height="settings.layout.skillWidth"
                 fill="url(#linearGradient)"
               />
             </g>
 
             <g
+              :transform="innerTransform(skill)"
               :class="{ skillInner: true, reversed: skill.reversed }"
-              :mask="`url(#${skill.id}-maskInner)`"
             >
-              <g :transform="innerTransform(skill)">
-                <SvgIcon
-                  v-if="skill.icon && skill.iconDetails"
-                  class="skillIcon"
-                  :icon="skill.icon"
-                  v-bind="iconAttributes(skill)"
+              <mask :id="`${skill.id}-maskInner`" maskUnits="objectBoundingBox">
+                <use
+                  :href="`#${skillOutlineId(skill.roundedLength)}`"
+                  class="skillBoxInner"
+                  :y="-settings.layout.skillWidth / 2"
+                  :stroke-width="settings.layout.skillMargin * 2"
                 />
+              </mask>
 
-                <text :x="settings.layout.skillMargin" class="name">
+              <SvgIcon
+                v-if="skill.icon && skill.iconDetails"
+                class="skillIcon"
+                :icon="skill.icon"
+                v-bind="iconAttributes(skill)"
+              />
+
+              <g :mask="`url(#${skill.id}-maskInner)`">
+                <text
+                  :x="
+                    settings.layout.skillMargin + (skill.icon ? innerHeight : 0)
+                  "
+                  class="name"
+                >
                   <tspan>{{ skill.name }}</tspan>
                 </text>
               </g>
@@ -195,7 +244,33 @@
 
             <use
               :href="`#${skillOutlineId(skill.roundedLength)}`"
-              class="skillBoxBackground"
+              class="skillBoxTexture"
+              fill="url(#ridges)"
+              :x="skill.barRanges.total.start"
+              :y="-settings.layout.skillWidth / 2"
+            />
+
+            <line
+              class="ribbonEdge"
+              :x1="skill.barRanges.total.start"
+              :x2="skill.barRanges.total.end"
+              :y1="-settings.layout.skillWidth / 2 + 1.5"
+              :y2="-settings.layout.skillWidth / 2 + 1.5"
+            />
+
+            <line
+              class="ribbonEdge"
+              :x1="skill.barRanges.total.start"
+              :x2="skill.barRanges.total.end"
+              :y1="settings.layout.skillWidth / 2 - 1.5"
+              :y2="settings.layout.skillWidth / 2 - 1.5"
+            />
+
+            <use
+              :href="`#${skillOutlineId(skill.roundedLength)}`"
+              class="skillBoxLighting"
+              fill="url(#reflections)"
+              filter="url(#reflectionBlur)"
               :x="skill.barRanges.total.start"
               :y="-settings.layout.skillWidth / 2"
             />
@@ -204,25 +279,29 @@
       </g>
     </svg>
     <div class="sidebar">
-      <div
-        v-for="skill of data.tree.skills"
-        :key="skill.id"
-        @click="select(skill.id)"
-        :class="{ selected: skill.id === selection, skillInfo: true }"
-      >
-        <h3 class="name">
+      <div v-if="!selection" class="list">
+        <h3
+          v-for="skill of data.tree.skills"
+          :key="skill.id"
+          @click="select(skill, $event)"
+        >
           {{ skill.name }}
         </h3>
-        <div class="details">
-          <p class="notes">{{ skill.notes }}</p>
-          <p class="reference">{{ skill.reference }}</p>
-        </div>
+      </div>
+      <div class="details" v-else>
+        <h3>
+          {{ selection.name }}
+        </h3>
+        <p class="notes">{{ selection.notes }}</p>
+        <p class="reference">
+          <a :href="selection.reference">{{ selection.reference }}</a>
+        </p>
       </div>
     </div>
   </div>
 </template>
 <script lang="ts">
-import { defineComponent, PropType, ref } from 'vue';
+import { computed, defineComponent, PropType, ref } from 'vue';
 import { Data } from './ts/model/Data';
 import { Link } from './ts/model/Link';
 import Pt from './ts/model/Pt';
@@ -241,14 +320,37 @@ export default defineComponent({
     const drawingGroup = ref<SVGGElement>();
 
     function setZoom(transform: d3.ZoomTransform): void {
+      console.log(`Transform: ${transform.toString()}`);
+
+      if (isNaN(transform.x) || isNaN(transform.y) || isNaN(transform.k)) {
+        return;
+      }
+
       mainGroup.value?.setAttribute('transform', transform.toString());
 
-      mainGroup.value
-        ?.querySelectorAll('text')
-        .forEach(
-          (el) => (el.style.fontSize = settings.text.size / transform.k + 'px')
-        );
+      mainGroup.value?.classList.toggle('detailed', transform.k > 4);
     }
+
+    const width = computed(() => graphSvg.value?.clientWidth ?? 0);
+
+    const height = computed(() => graphSvg.value?.clientHeight ?? 0);
+
+    const drawingRadius = computed(() =>
+      props.data.tree.scale(props.data.tree.skillRange[1])
+    );
+
+    const maxCircleRadius = computed(() => {
+      let radius = drawingRadius.value * Math.SQRT2;
+
+      if (width.value && height.value) {
+        radius *= Math.max(
+          width.value / height.value,
+          height.value / width.value
+        );
+      }
+
+      return radius;
+    });
 
     return {
       graphSvg,
@@ -257,11 +359,19 @@ export default defineComponent({
       scale: props.data.tree.scale,
       settings,
       zoom: d3
-        .zoom()
-        .scaleExtent([1, 6])
+        .zoom<SVGSVGElement, unknown>()
+        // .scaleExtent([0.8, 6])
+        // .translateExtent([
+        //   [-drawingRadius.value, -drawingRadius.value],
+        //   [drawingRadius.value * 2, drawingRadius.value * 2],
+        // ])
         .on('zoom', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
           setZoom(event.transform);
-        }) as unknown as d3.ZoomBehavior<SVGSVGElement, unknown>,
+        }),
+      width,
+      height,
+      drawingRadius,
+      maxCircleRadius,
     };
   },
   props: {
@@ -272,21 +382,12 @@ export default defineComponent({
   },
   data() {
     return {
-      selection: undefined as string | undefined,
+      selection: undefined as Skill | undefined,
     };
   },
   computed: {
-    width() {
-      return this.graphSvg?.clientWidth ?? 0;
-    },
-    height() {
-      return this.graphSvg?.clientHeight ?? 0;
-    },
-    drawingRadius() {
-      return this.scale(this.data.tree.skillRange[1]) * Math.SQRT2;
-    },
     gridLevels() {
-      return Array(Math.floor(this.scale.invert(this.drawingRadius)))
+      return Array(Math.floor(this.scale.invert(this.maxCircleRadius)))
         .fill(0)
         .map((_, i) => i)
         .filter(
@@ -303,27 +404,81 @@ export default defineComponent({
         Object.values(this.data.tree.skills).map((s) => s.roundedLength)
       );
     },
+    innerHeight() {
+      return settings.layout.skillWidth - 2 * settings.layout.skillMargin;
+    },
   },
   async mounted() {
     if (this.graphSvg) {
       select(this.graphSvg).call(this.zoom);
 
-      this.zoomFit(0.85);
+      this.zoomFit(false);
     }
   },
   methods: {
-    select(skillId?: string): void {
-      if (skillId === this.selection) {
+    tooltipTitle(skill: Skill) {
+      let title = `${skill.name}: `;
+
+      if (skill.actualEnd !== skill.start) {
+        const start = this.formatTime(skill.start);
+        const end = this.formatTime(skill.actualEnd);
+
+        if (start.unit !== end.unit) {
+          title += `${start.format} - ${end.format}`;
+        } else {
+          title += `${start.number} - ${end.number} ${start.unit}${this.plural(
+            end.number
+          )}`;
+        }
+      } else {
+        title += this.formatTime(skill.start).format;
+      }
+
+      return title;
+    },
+    formatTime(time: number) {
+      const result = {
+        number: time,
+        unit: 'month' as string | undefined,
+      };
+
+      if (time % 12 === 0) {
+        result.number = time / 12;
+        result.unit = 'year';
+      }
+
+      if (time == 0) {
+        result.unit = undefined;
+
+        return { ...result, format: 'birth' };
+      }
+
+      return {
+        ...result,
+        format: `${result.number} ${result.unit}${this.plural(result.number)}`,
+      };
+    },
+    plural(num: number) {
+      if (num === 1) {
+        return '';
+      } else {
+        return 's';
+      }
+    },
+    select(skill: Skill | undefined, event: Event): void {
+      if (skill?.id === this.selection?.id) {
         this.selection = undefined;
       } else {
-        this.selection = skillId;
+        this.selection = skill;
       }
 
       this.graphSvg
         ?.querySelectorAll('.skill')
         .forEach((s) =>
-          s.classList.toggle('selected', s.id === this.selection)
+          s.classList.toggle('selected', s.id === this.selection?.id)
         );
+
+      event.stopPropagation();
     },
     linkLine(link: Link) {
       const start = Pt.fromPolar(
@@ -346,18 +501,13 @@ export default defineComponent({
       return `skillOutline-${length.toString().replace('.', '-')}`;
     },
     innerTransform(skill: Skill): string {
-      const innerHeight =
-        settings.layout.skillWidth - 2 * settings.layout.skillMargin;
-
       if (skill.reversed) {
         return `rotate(180) translate(${
           -skill.barRanges.total.end + settings.layout.skillMargin
         })`;
       } else {
         return `translate(${
-          skill.barRanges.total.start
-          + settings.layout.skillMargin
-          + (skill.icon ? innerHeight : 0)
+          skill.barRanges.total.start + settings.layout.skillMargin
         })`;
       }
     },
@@ -369,12 +519,12 @@ export default defineComponent({
 
       return {
         y: -innerHeight / 2,
-        x: skill.reversed ? innerLength - innerHeight : -innerHeight,
+        x: skill.reversed ? innerLength - innerHeight : 0,
         height: innerHeight,
         width: innerHeight,
       };
     },
-    zoomFit(paddingPercent = 0.75): void {
+    zoomFit(animate = true, paddingPercent = 0.85): void {
       const bounds = this.drawingGroup?.getBBox();
       const fullWidth = this.graphSvg?.clientWidth,
         fullHeight = this.graphSvg?.clientHeight;
@@ -398,16 +548,26 @@ export default defineComponent({
       console.debug('zoomFit', translate, scale);
 
       if (this.graphSvg) {
-        select(this.graphSvg)
-          .transition()
-          .duration(750)
-          .call(
+        if (animate) {
+          select(this.graphSvg)
+            .transition()
+            .duration(750)
+            .call(
+              this.zoom.transform,
+              d3.zoomIdentity
+                .translate(fullWidth / 2, fullHeight / 2)
+                .scale(scale)
+                .translate(...translate)
+            );
+        } else {
+          select(this.graphSvg).call(
             this.zoom.transform,
             d3.zoomIdentity
               .translate(fullWidth / 2, fullHeight / 2)
               .scale(scale)
               .translate(...translate)
           );
+        }
       }
     },
   },
@@ -419,7 +579,7 @@ export default defineComponent({
 $gray: #bbb;
 $grid: rgba(255, 255, 255, 0.3);
 $background: rgb(70, 92, 167);
-$skillBackground: rgb(230, 202, 48);
+$skillBackground: rgb(209, 183, 38);
 $text: color.scale($skillBackground, $lightness: -60%);
 $shadow: color.scale($background, $lightness: -30%, $saturation: -30%);
 
@@ -437,14 +597,13 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-rect.background {
-  fill: $background;
+svg #colorizeBackground feFlood {
+  flood-color: $background;
 }
 
 svg.graph {
   flex-grow: 1;
   font-size: 14px;
-  vector-effect: non-scaling-stroke;
 }
 
 .sidebar {
@@ -453,9 +612,9 @@ svg.graph {
   color: $uiLine;
   padding: 8px;
   border-left: 1px solid $uiLine;
-  box-shadow: 0 0 6px 6px $shadow;
+  box-shadow: 0 0 6px 6px rgba($color: $shadow, $alpha: 0.5);
 
-  p {
+  .list h3 {
     cursor: pointer;
     padding: 8px 8px;
     margin: 0;
@@ -465,8 +624,11 @@ svg.graph {
     }
   }
 
-  .selected {
-    font-weight: bold;
+  .details {
+    a {
+      color: $uiLine;
+      font-size: 10px;
+    }
   }
 }
 
@@ -500,11 +662,16 @@ circle.level {
 
   .name {
     font-weight: bold;
+    font-size: 8px;
 
     tspan {
       alignment-baseline: middle;
     }
   }
+}
+
+.detailed .name {
+  font-size: 3px;
 }
 
 .skillBoxInner {
@@ -519,7 +686,8 @@ circle.level {
 }
 
 .gradientStart {
-  stop-color: color.mix($skillBackground, $background, 20%);
+  stop-color: $skillBackground;
+  stop-opacity: 0.2;
 }
 
 .gradientEnd {
@@ -541,6 +709,11 @@ circle.level {
   fill: $skillBackground;
 }
 
+.skillLine {
+  stroke: $skillBackground;
+  stroke-width: 6;
+}
+
 #dropShadow {
   feFlood {
     flood-color: $shadow;
@@ -549,9 +722,25 @@ circle.level {
 }
 
 .skillBoxBackground {
-  stroke: color.scale($skillBackground, $blackness: 0%);
-  stroke-width: 0px;
-  fill: none;
+  fill: $background;
+}
+
+.skillBoxTexture {
+  opacity: 0.15;
+  mix-blend-mode: multiply;
+}
+
+.skillBoxLighting {
+  opacity: 0.6;
+  mix-blend-mode: soft-light;
+}
+
+.ribbonEdge {
+  stroke-width: 0.5px;
+  stroke-opacity: 0.2;
+  mix-blend-mode: multiply;
+  stroke: black;
+  stroke-dasharray: 2.5;
 }
 
 button {

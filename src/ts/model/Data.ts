@@ -34,20 +34,22 @@ export class Tree {
   skills: { [id: string]: Skill } = {};
   links: Link[] = [];
   nodeList: Skill[] = [];
-  series: Map<string, Skill[]> = new Map<string, Skill[]>();
+  types: Map<string, Skill[]> = new Map<string, Skill[]>();
   lanes: Map<number, Skill[]> = new Map<number, Skill[]>();
   skillRange: [number, number];
 
   constructor(skills: Skill[]) {
-    const seriesNames = new Set(skills.map((s) => s.series));
-    const seriesCount = seriesNames.size;
+    const sortedSkills = skills.slice().sort((a, b) => a.start - b.start);
 
-    this.skillRange = skills.reduce(
+    const typeNames = new Set(sortedSkills.map((s) => s.type));
+    const typesCount = typeNames.size;
+
+    this.skillRange = sortedSkills.reduce(
       (prev, curr) => [
         Math.min(prev[0], curr.start),
         Math.max(prev[1], curr.actualEnd),
       ],
-      [skills[0].start, 0]
+      [sortedSkills[0].start, 0]
     );
 
     this.scale = scalePow()
@@ -55,34 +57,46 @@ export class Tree {
       .range([settings.layout.centerRadius, settings.layout.width / 2])
       .exponent(0.5);
 
-    for (const skill of skills) {
+    for (const skill of sortedSkills) {
       skill.setRanges(this.scale);
 
       if (skill.icon) {
         skill.getIconDetails();
       }
 
-      this.skills[skill.id] = skill;
+      if (skill.prerequisites) {
+        skill.parents = skill.prerequisites
+          .split(',')
+          .map((prereq) => ({ source: this.skills[prereq], target: skill }));
 
-      let series = this.series.get(skill.series);
+        for (const link of skill.parents) {
+          this.links.push(link);
 
-      if (!series) {
-        if (!skill.angle) {
-          skill.angle = (360 / seriesCount) * this.series.size;
+          link.source.children.push(link);
         }
 
-        series = [];
-        this.series.set(skill.series, series);
-      } else if (!skill.angle) {
-        skill.angle = series[0].angle;
+        skill.angle = skill.parents[0].source.angle;
+      }
+
+      let type = this.types.get(skill.type);
+
+      if (!type) {
+        if (skill.angle === undefined) {
+          skill.angle = (360 / typesCount) * this.types.size;
+        }
+
+        type = [];
+        this.types.set(skill.type, type);
+      } else if (skill.angle === undefined) {
+        skill.angle = type[0].angle;
       }
 
       this.addToLane(skill);
 
-      series.push(skill);
-    }
+      type.push(skill);
 
-    this.addLinks();
+      this.skills[skill.id] = skill;
+    }
   }
 
   addToLane(skill: Skill): void {
@@ -92,11 +106,7 @@ export class Tree {
         const aDiff = Math.abs(a - skill.angle);
         const bDiff = Math.abs(b - skill.angle);
 
-        if (aDiff == bDiff) {
-          return a > b ? a : b;
-        } else {
-          return bDiff < aDiff ? b : a;
-        }
+        return aDiff - bDiff;
       }
     );
 
@@ -154,21 +164,5 @@ export class Tree {
     return Array(count)
       .fill(0)
       .map((v, i) => (i * 360) / count);
-  }
-
-  addLinks(): void {
-    for (const skill of Object.values(this.skills)) {
-      if (skill.prerequisites) {
-        skill.parents = skill.prerequisites
-          .split(',')
-          .map((prereq) => ({ source: this.skills[prereq], target: skill }));
-
-        for (const link of skill.parents) {
-          this.links.push(link);
-
-          link.source.children.push(link);
-        }
-      }
-    }
   }
 }

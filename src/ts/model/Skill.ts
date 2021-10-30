@@ -9,7 +9,7 @@ interface RangeSegment {
 }
 
 export class Skill {
-  angle = 0;
+  angle!: number;
 
   id!: string;
 
@@ -22,7 +22,8 @@ export class Skill {
   maxEnd?: number;
   prerequisites?: string;
   name!: string;
-  series!: string;
+  type!: string;
+  series?: string;
   icon?: string;
 
   iconDetails?: IconDetails;
@@ -34,7 +35,7 @@ export class Skill {
 
   barRanges!: {
     start?: RangeSegment;
-    main: RangeSegment;
+    main?: RangeSegment;
     end?: RangeSegment;
     total: RangeSegment;
   };
@@ -59,7 +60,7 @@ export class Skill {
 
   toString(): string {
     return `Skill: ${this.name} (${this.id})
-  ${this.series}
+  ${this.type}
   ${this.start} - ${this.actualEnd}`;
   }
 
@@ -76,20 +77,25 @@ export class Skill {
   }
 
   setRanges(scale: d3.ScaleContinuousNumeric<number, number>): void {
-    let end = this.actualEnd;
+    let visualEnd = this.actualEnd;
 
-    if (scale(end) - scale(this.start) < settings.layout.minSkillLength) {
-      end = scale.invert(scale(this.start) + settings.layout.minSkillLength);
+    if (scale(visualEnd) - scale(this.start) < settings.layout.minSkillLength) {
+      visualEnd = scale.invert(
+        scale(this.start) + settings.layout.minSkillLength
+      );
     }
 
     this.barRanges = {
-      total: this.makeBarRange(scale, this.start, end),
-      main: this.makeBarRange(
+      total: this.makeBarRange(scale, this.start, visualEnd),
+    };
+
+    if (this.end) {
+      this.barRanges.main = this.makeBarRange(
         scale,
         this.maxStart ?? this.start,
-        this.maxEnd ? this.end ?? end : end
-      ),
-    };
+        this.end
+      );
+    }
 
     if (this.maxStart) {
       this.barRanges.start = this.makeBarRange(
