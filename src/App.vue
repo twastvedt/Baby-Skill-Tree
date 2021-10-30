@@ -226,22 +226,6 @@
               :transform="innerTransform(skill)"
               :class="{ skillInner: true, reversed: skill.reversed }"
             >
-              <mask :id="`${skill.id}-maskInner`" maskUnits="objectBoundingBox">
-                <use
-                  :href="`#${skillOutlineId(skill.roundedLength)}${
-                    skill.icon ? '-icon' : ''
-                  }`"
-                  class="skillBoxInner"
-                  :x="
-                    skill.icon && !skill.reversed
-                      ? settings.layout.skillWidth - settings.layout.skillMargin
-                      : 0
-                  "
-                  :y="-settings.layout.skillWidth / 2"
-                  :stroke-width="settings.layout.skillMargin * 2"
-                />
-              </mask>
-
               <SvgIcon
                 v-if="skill.icon && skill.iconDetails"
                 class="skillIcon"
@@ -249,16 +233,29 @@
                 v-bind="iconAttributes(skill)"
               />
 
-              <g :mask="`url(#${skill.id}-maskInner)`">
-                <text
-                  :x="
-                    settings.layout.skillMargin
-                    + (skill.icon && !skill.reversed
-                      ? innerHeight + settings.layout.skillMargin
-                      : 3)
-                  "
-                  class="name"
+              <g
+                :mask="`url(#${skill.id}-maskInner)`"
+                :transform="`translate(${
+                  skill.icon && !skill.reversed
+                    ? settings.layout.skillWidth - settings.layout.skillMargin
+                    : 0
+                })`"
+              >
+                <mask
+                  :id="`${skill.id}-maskInner`"
+                  maskUnits="objectBoundingBox"
                 >
+                  <use
+                    :href="`#${skillOutlineId(skill.roundedLength)}${
+                      skill.icon ? '-icon' : ''
+                    }`"
+                    class="skillBoxInner"
+                    :y="-settings.layout.skillWidth / 2"
+                    :stroke-width="settings.layout.skillMargin * 2"
+                  />
+                </mask>
+
+                <text :x="settings.layout.skillMargin" class="name">
                   {{ skill.name }}
                 </text>
               </g>
